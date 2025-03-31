@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import { 
   ChevronDown, 
-  ArrowLeft, 
-  Target, 
   Star, 
   MessageSquare,
   Calendar,
@@ -13,8 +11,20 @@ import {
   Clock,
   BarChart3,
   Send,
-  ThumbsUp
+  ThumbsUp,
+  User,
+  Target,
+  Search,
+  Filter
 } from 'lucide-react'
+
+interface Employee {
+  id: number
+  name: string
+  avatar: string
+  role: string
+  department: string
+}
 
 interface Goal {
   id: number
@@ -22,21 +32,27 @@ interface Goal {
   description: string
   status: 'In Progress' | 'Completed' | 'Overdue'
   dueDate: string
-  rating?: number
-  comments?: string
   progress: number
   category: string
-  approvedBy: string
-  approvedAt: string
+  employee: Employee
+  selfRating?: number
+  selfComments?: string
+  managerRating?: number
+  managerComments?: string
+  submittedAt: string
 }
 
-export function SelfRating() {
-  const [goals, setGoals] = useState<Goal[]>([])
-
+export function ManagerRating() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
-  const [selectedRatings, setSelectedRatings] = useState<Record<number, number>>({})
+  const [ratings, setRatings] = useState<Record<number, number>>({})
   const [comments, setComments] = useState<Record<number, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Initialize goals as empty array
+  const [goals, setGoals] = useState<Goal[]>([])
 
   const ratingOptions = [
     { value: 1, label: '1 - Needs Improvement', description: 'Performance below expectations' },
@@ -73,7 +89,7 @@ export function SelfRating() {
   }
 
   const handleSubmitRating = async (goalId: number) => {
-    const rating = selectedRatings[goalId]
+    const rating = ratings[goalId]
     const comment = comments[goalId]
     if (!rating) return
 
@@ -83,7 +99,7 @@ export function SelfRating() {
       await new Promise(resolve => setTimeout(resolve, 1000))
       setGoals(goals.map(goal => 
         goal.id === goalId 
-          ? { ...goal, rating, comments: comment }
+          ? { ...goal, managerRating: rating, managerComments: comment }
           : goal
       ))
       setSelectedGoal(null)
@@ -91,6 +107,17 @@ export function SelfRating() {
       setIsSubmitting(false)
     }
   }
+
+  const filteredGoals = goals.filter(goal => {
+    const matchesSearch = goal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      goal.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      goal.employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = selectedStatus === 'all' || goal.status === selectedStatus
+    const matchesEmployee = !selectedEmployee || goal.employee.id === selectedEmployee
+
+    return matchesSearch && matchesStatus && matchesEmployee
+  })
 
   if (selectedGoal) {
     return (
@@ -100,15 +127,15 @@ export function SelfRating() {
             onClick={() => setSelectedGoal(null)}
             className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ChevronDown className="w-5 h-5 rotate-90" />
           </button>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[#6c47ff]/10 rounded-lg">
               <Star className="w-5 h-5 text-[#6c47ff]" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-white">Self Assessment</h1>
-              <p className="text-gray-400 mt-1">Rate your performance for this goal</p>
+              <h1 className="text-2xl font-semibold text-white">Performance Assessment</h1>
+              <p className="text-gray-400 mt-1">Evaluate employee performance for this goal</p>
             </div>
           </div>
         </div>
@@ -118,7 +145,19 @@ export function SelfRating() {
           <div className="p-8 border-b border-gray-800/50">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-2xl font-semibold text-white mb-3">{selectedGoal.title}</h2>
+                <div className="flex items-center gap-3 mb-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={selectedGoal.employee.avatar}
+                    alt={selectedGoal.employee.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">{selectedGoal.employee.name}</h2>
+                    <p className="text-gray-400">{selectedGoal.employee.role} • {selectedGoal.employee.department}</p>
+                  </div>
+                </div>
+                <h3 className="text-2xl font-semibold text-white mb-3">{selectedGoal.title}</h3>
                 <p className="text-gray-400 text-lg mb-6">{selectedGoal.description}</p>
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1 text-sm text-gray-400">
@@ -133,13 +172,6 @@ export function SelfRating() {
                     {selectedGoal.category}
                   </span>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-400">Approved by</p>
-                <p className="text-white font-medium">{selectedGoal.approvedBy}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(selectedGoal.approvedAt).toLocaleDateString()}
-                </p>
               </div>
             </div>
 
@@ -160,6 +192,18 @@ export function SelfRating() {
                 />
               </div>
             </div>
+
+            {/* Self Assessment */}
+            {selectedGoal.selfRating && (
+              <div className="mt-6 p-4 bg-[#1E293B] rounded-lg">
+                <h4 className="text-sm font-medium text-gray-400 mb-2">Self Assessment</h4>
+                <div className="flex items-center gap-2 mb-2">
+                  <ThumbsUp className="w-4 h-4 text-green-400" />
+                  <span className="text-white">Rating: {selectedGoal.selfRating}/5</span>
+                </div>
+                <p className="text-gray-400 text-sm">{selectedGoal.selfComments}</p>
+              </div>
+            )}
           </div>
 
           {/* Rating Form */}
@@ -167,13 +211,13 @@ export function SelfRating() {
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-3">
                 <BarChart3 className="w-4 h-4" />
-                Rating
+                Manager Rating
               </label>
               <div className="relative max-w-md">
                 <select
-                  value={selectedRatings[selectedGoal.id] || ''}
-                  onChange={(e) => setSelectedRatings({
-                    ...selectedRatings,
+                  value={ratings[selectedGoal.id] || ''}
+                  onChange={(e) => setRatings({
+                    ...ratings,
                     [selectedGoal.id]: Number(e.target.value)
                   })}
                   className="w-full px-4 py-3 bg-[#1E293B] border border-gray-800 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-[#6c47ff] text-lg"
@@ -187,9 +231,9 @@ export function SelfRating() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
-              {selectedRatings[selectedGoal.id] && (
+              {ratings[selectedGoal.id] && (
                 <p className="mt-2 text-sm text-gray-400">
-                  {ratingOptions.find(opt => opt.value === selectedRatings[selectedGoal.id])?.description}
+                  {ratingOptions.find(opt => opt.value === ratings[selectedGoal.id])?.description}
                 </p>
               )}
             </div>
@@ -197,7 +241,7 @@ export function SelfRating() {
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-3">
                 <MessageSquare className="w-4 h-4" />
-                Self Assessment Comments
+                Manager Comments
               </label>
               <textarea
                 value={comments[selectedGoal.id] || ''}
@@ -205,7 +249,7 @@ export function SelfRating() {
                   ...comments,
                   [selectedGoal.id]: e.target.value
                 })}
-                placeholder="Provide detailed self-assessment of your performance..."
+                placeholder="Provide detailed feedback on employee performance..."
                 className="w-full px-4 py-3 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] min-h-[200px] text-lg"
               />
             </div>
@@ -213,7 +257,7 @@ export function SelfRating() {
             <div className="flex justify-end pt-4">
               <button
                 onClick={() => handleSubmitRating(selectedGoal.id)}
-                disabled={isSubmitting || !selectedRatings[selectedGoal.id]}
+                disabled={isSubmitting || !ratings[selectedGoal.id]}
                 className="flex items-center gap-2 px-6 py-3 text-base font-medium text-white bg-[#6c47ff] rounded-lg hover:bg-[#5a3dd8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
@@ -243,14 +287,54 @@ export function SelfRating() {
             <Star className="w-5 h-5 text-[#6c47ff]" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-white">Self Rating</h1>
-            <p className="text-gray-400 mt-1">Evaluate your performance against approved goals</p>
+            <h1 className="text-2xl font-semibold text-white">Manager Rating</h1>
+            <p className="text-gray-400 mt-1">Evaluate employee performance against their goals</p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {goals.map((goal) => (
+      {/* Filters */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search goals..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
+          />
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
+          >
+            <option value="all">All Status</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+          <select
+            value={selectedEmployee || ''}
+            onChange={(e) => setSelectedEmployee(e.target.value ? Number(e.target.value) : null)}
+            className="px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
+          >
+            <option value="">All Employees</option>
+            {[...new Set(goals.map(goal => goal.employee.id))].map(id => {
+              const employee = goals.find(g => g.employee.id === id)?.employee
+              return employee ? (
+                <option key={id} value={id}>{employee.name}</option>
+              ) : null
+            })}
+          </select>
+        </div>
+      </div>
+
+      {/* Goals List */}
+      <div className="grid gap-6">
+        {filteredGoals.map((goal) => (
           <div
             key={goal.id}
             className="bg-[#151524] rounded-lg overflow-hidden border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200 cursor-pointer"
@@ -258,9 +342,18 @@ export function SelfRating() {
           >
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-white mb-2">{goal.title}</h2>
-                  <p className="text-gray-400 mb-4 line-clamp-2">{goal.description}</p>
+                <div className="flex items-center gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={goal.employee.avatar}
+                    alt={goal.employee.name}
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <div>
+                    <h2 className="text-xl font-semibold text-white mb-1">{goal.title}</h2>
+                    <p className="text-gray-400 text-sm mb-2">{goal.employee.name} • {goal.employee.role}</p>
+                    <p className="text-gray-400 line-clamp-2">{goal.description}</p>
+                  </div>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(goal.status)} flex items-center gap-1`}>
                   {getStatusIcon(goal.status)}
@@ -297,10 +390,19 @@ export function SelfRating() {
                   </div>
                 </div>
 
-                {goal.rating && (
+                {/* Self Rating */}
+                {goal.selfRating && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-[#1E293B] rounded-lg">
                     <ThumbsUp className="w-4 h-4 text-green-400" />
-                    <span className="text-sm text-white">Rating: {goal.rating}/5</span>
+                    <span className="text-sm text-white">Self Rating: {goal.selfRating}/5</span>
+                  </div>
+                )}
+
+                {/* Manager Rating */}
+                {goal.managerRating && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-[#1E293B] rounded-lg">
+                    <Star className="w-4 h-4 text-yellow-400" />
+                    <span className="text-sm text-white">Manager Rating: {goal.managerRating}/5</span>
                   </div>
                 )}
               </div>
@@ -308,6 +410,16 @@ export function SelfRating() {
           </div>
         ))}
       </div>
+
+      {filteredGoals.length === 0 && (
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1E293B] mb-4">
+            <AlertCircle className="w-6 h-6 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-white">No goals found</h3>
+          <p className="text-gray-400 mt-1">Try adjusting your search or filter criteria</p>
+        </div>
+      )}
     </div>
   )
-}
+} 

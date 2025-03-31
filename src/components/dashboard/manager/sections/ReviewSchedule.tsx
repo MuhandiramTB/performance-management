@@ -21,24 +21,7 @@ export function ReviewSchedule() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
-
-  // Mock data - replace with actual data from your backend
-  const reviews: ScheduledReview[] = [
-    {
-      id: 1,
-      employeeName: 'David Kim',
-      employeeAvatar: '/avatars/david.jpg',
-      role: 'Product Designer',
-      department: 'Design',
-      reviewType: 'Quarterly',
-      date: '2024-03-20',
-      time: '10:00',
-      duration: 60,
-      participants: ['John Manager', 'Sarah HR', 'David Kim'],
-      status: 'Scheduled'
-    },
-    // Add more mock reviews here
-  ]
+  const [reviews, setReviews] = useState<ScheduledReview[]>([])
 
   const getStatusColor = (status: string) => {
     switch (status) {

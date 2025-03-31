@@ -21,31 +21,9 @@ export function AuditLogs({ onBack }: AuditLogsProps) {
   const [filterStatus, setFilterStatus] = useState<'all' | 'success' | 'failure'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+  const [logs, setLogs] = useState<AuditLog[]>([])
 
-  // Mock data - replace with actual data fetching
-  const mockLogs: AuditLog[] = [
-    {
-      id: '1',
-      timestamp: '2024-03-20 14:30:00',
-      user: 'admin@example.com',
-      action: 'User Login',
-      details: 'Successful login attempt',
-      ipAddress: '192.168.1.1',
-      status: 'success'
-    },
-    {
-      id: '2',
-      timestamp: '2024-03-20 14:25:00',
-      user: 'user@example.com',
-      action: 'Failed Login',
-      details: 'Invalid credentials',
-      ipAddress: '192.168.1.2',
-      status: 'failure'
-    },
-    // Add more mock data as needed
-  ]
-
-  const filteredLogs = mockLogs.filter(log => {
+  const filteredLogs = logs.filter(log => {
     const matchesSearch = 
       log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Menu, X, LogOut } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, Users, History, Settings, Shield } from 'lucide-react'
 import { AdminNavigationItems } from '../ui/AdminNavigationItems'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
@@ -12,6 +12,24 @@ interface SidebarProps {
   isMobileMenuOpen: boolean
   setIsMobileMenuOpen: (isOpen: boolean) => void
 }
+
+const navigationItems = [
+  {
+    id: 'admin',
+    label: 'Admin Management',
+    icon: Shield,
+    href: '/dashboard/admin'
+  }
+,
+  {
+    id: 'audit',
+    label: 'Audit Logs',
+    icon: History,
+    href: '/dashboard/admin/audit'
+  },
+  
+  
+]
 
 export function Sidebar({ selectedTab, setSelectedTab, isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
   const router = useRouter()
@@ -25,19 +43,12 @@ export function Sidebar({ selectedTab, setSelectedTab, isMobileMenuOpen, setIsMo
   return (
     <>
       <div className={`
-        fixed lg:sticky lg:top-0 inset-0 z-20 bg-[#151524] w-64 h-screen transform transition-transform duration-200 ease-in-out border-r border-gray-800
+        fixed lg:sticky lg:top-0 inset-0 z-20  bg-[#151524]/40 w-64 h-screen transform transition-transform duration-200 ease-in-out border-r border-gray-800
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="flex flex-col h-full">
+        <div className="mt-15 flex flex-col h-50">
           <div className="p-4">
-            <div className="flex items-center gap-2 px-2 mb-8">
-              <div className="bg-[#6c47ff] rounded-lg p-2">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
-              </div>
-              <span className="text-lg font-semibold text-white">Admin Portal</span>
-            </div>
+            
 
             <AdminNavigationItems
               selectedTab={selectedTab}

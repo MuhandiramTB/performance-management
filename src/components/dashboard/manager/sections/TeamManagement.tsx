@@ -17,39 +17,7 @@ interface TeamMember {
 export function TeamManagement() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showActions, setShowActions] = useState<number | null>(null)
-
-  const teamMembers: TeamMember[] = [
-    {
-      id: 1,
-      name: 'John Doe',
-      role: 'Senior Developer',
-      email: 'john.doe@company.com',
-      phone: '+1 234 567 890',
-      performance: 92,
-      avatar: 'J',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      role: 'UI Designer',
-      email: 'jane.smith@company.com',
-      phone: '+1 234 567 891',
-      performance: 88,
-      avatar: 'J',
-      status: 'Remote'
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      role: 'Product Manager',
-      email: 'mike.j@company.com',
-      phone: '+1 234 567 892',
-      performance: 95,
-      avatar: 'M',
-      status: 'On Leave'
-    }
-  ]
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
 
   const getStatusColor = (status: TeamMember['status']) => {
     switch (status) {

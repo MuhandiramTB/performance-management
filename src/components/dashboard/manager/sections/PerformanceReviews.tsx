@@ -20,22 +20,7 @@ export function PerformanceReviews() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedType, setSelectedType] = useState<string>('all')
-
-  // Mock data - replace with actual data from your backend
-  const reviews: Review[] = [
-    {
-      id: 1,
-      employeeName: 'Sarah Wilson',
-      employeeAvatar: '/avatars/sarah.jpg',
-      role: 'Senior Developer',
-      department: 'Engineering',
-      reviewType: 'Quarterly',
-      status: 'Scheduled',
-      dueDate: '2024-03-30',
-      rating: 4.5
-    },
-    // Add more mock reviews here
-  ]
+  const [reviews, setReviews] = useState<Review[]>([])
 
   const getStatusColor = (status: string) => {
     switch (status) {

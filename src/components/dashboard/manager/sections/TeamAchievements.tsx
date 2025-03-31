@@ -27,31 +27,7 @@ export function TeamAchievements() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-
-  // Mock data - replace with actual data from your backend
-  const achievements: Achievement[] = [
-    {
-      id: 1,
-      title: 'Project X Launch Success',
-      description: 'Successfully launched Project X ahead of schedule with exceptional user feedback',
-      achievedBy: {
-        name: 'Team Alpha',
-        avatar: '/avatars/team-alpha.jpg',
-        role: 'Development Team'
-      },
-      type: 'Team',
-      category: 'Performance',
-      date: '2024-03-15',
-      impact: 'Increased user engagement by 45%',
-      recognition: 'Gold',
-      metrics: [
-        { label: 'User Satisfaction', value: '95%' },
-        { label: 'Time Saved', value: '2 weeks' },
-        { label: 'Cost Reduction', value: '30%' }
-      ]
-    },
-    // Add more mock achievements here
-  ]
+  const [achievements, setAchievements] = useState<Achievement[]>([])
 
   const getRecognitionIcon = (recognition: string) => {
     switch (recognition) {

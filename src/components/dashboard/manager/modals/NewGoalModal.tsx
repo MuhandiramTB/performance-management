@@ -32,8 +32,8 @@ export function NewGoalModal({ onClose, onSubmit }: NewGoalModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-[#151524] rounded-xl p-6 w-full max-w-md border border-gray-800/50 shadow-xl">
+    <div className=" mt-15 fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-[#151524] rounded-xl p-6 w-full max-w-md border border-gray-800/50">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[#6c47ff]/10 rounded-lg">

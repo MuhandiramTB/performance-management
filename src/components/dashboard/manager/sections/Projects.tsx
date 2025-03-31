@@ -33,43 +33,7 @@ export function Projects() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
-
-  // Mock data - replace with actual data from your backend
-  const projects: Project[] = [
-    {
-      id: 1,
-      title: 'Customer Portal Redesign',
-      description: 'Modernize the customer portal with improved UX and new features',
-      status: 'In Progress',
-      priority: 'High',
-      startDate: '2024-03-01',
-      endDate: '2024-04-15',
-      progress: 65,
-      team: [
-        {
-          name: 'Sarah Wilson',
-          avatar: '/avatars/sarah.jpg',
-          role: 'Lead Designer'
-        },
-        {
-          name: 'Michael Chen',
-          avatar: '/avatars/michael.jpg',
-          role: 'Frontend Developer'
-        }
-      ],
-      tasks: {
-        total: 24,
-        completed: 16,
-        overdue: 2
-      },
-      budget: {
-        allocated: 50000,
-        spent: 32500,
-        currency: 'USD'
-      }
-    },
-    // Add more mock projects here
-  ]
+  const [projects, setProjects] = useState<Project[]>([])
 
   const getStatusColor = (status: string) => {
     switch (status) {

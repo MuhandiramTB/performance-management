@@ -11,7 +11,6 @@ interface NavigationItemsProps {
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
   { id: 'goal-setting', label: 'Goal Setting', icon: TargetIcon },
-  { id: 'goal-approval', label: 'Goal Approval', icon: CheckSquare },
   { id: 'self-rating', label: 'Self Rating', icon: StarIcon },
   { id: 'feedback', label: 'Feedback', icon: MessageSquareIcon },
   { id: 'reports', label: 'Reports', icon: BarChartIcon }

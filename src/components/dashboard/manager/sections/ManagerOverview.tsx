@@ -1,6 +1,7 @@
 'use client'
 
 import { Users, Target, TrendingUp, Clock, BarChart2 } from 'lucide-react'
+import { useState } from 'react'
 
 interface TeamMetric {
   label: string
@@ -12,47 +13,8 @@ interface TeamMetric {
 }
 
 export function ManagerOverview() {
-  const teamMetrics: TeamMetric[] = [
-    {
-      label: 'Team Members',
-      value: 24,
-      change: 2.5,
-      icon: Users,
-      bgColor: 'bg-purple-500/20',
-      iconColor: 'text-purple-400'
-    },
-    {
-      label: 'Goals in Progress',
-      value: 18,
-      change: 12.3,
-      icon: Target,
-      bgColor: 'bg-blue-500/20',
-      iconColor: 'text-blue-400'
-    },
-    {
-      label: 'Team Performance',
-      value: '92%',
-      change: 8.1,
-      icon: TrendingUp,
-      bgColor: 'bg-green-500/20',
-      iconColor: 'text-green-400'
-    },
-    {
-      label: 'Reviews Due',
-      value: 8,
-      change: -5.2,
-      icon: Clock,
-      bgColor: 'bg-yellow-500/20',
-      iconColor: 'text-yellow-400'
-    }
-  ]
-
-  const performanceData = [
-    { name: 'Engineering', performance: 92, goals: 45 },
-    { name: 'Design', performance: 88, goals: 32 },
-    { name: 'Product', performance: 85, goals: 28 },
-    { name: 'Marketing', performance: 90, goals: 36 }
-  ]
+  const [teamMetrics, setTeamMetrics] = useState<TeamMetric[]>([])
+  const [performanceData, setPerformanceData] = useState<Array<{ name: string; performance: number; goals: number }>>([])
 
   return (
     <div className="space-y-8">

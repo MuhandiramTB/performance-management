@@ -51,6 +51,11 @@ export function EmployeeOverview() {
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
+  // State variables for data
+  const [stats, setStats] = useState<StatCardProps[]>([])
+  const [recentGoals, setRecentGoals] = useState<Goal[]>([])
+  const [upcomingReviews, setUpcomingReviews] = useState<Review[]>([])
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -69,80 +74,6 @@ export function EmployeeOverview() {
 
     fetchData()
   }, [supabase])
-
-  const stats = [
-    {
-      title: 'Goals Completed',
-      value: '85%',
-      change: '12%',
-      icon: TargetIcon,
-      iconColor: 'bg-emerald-500/20',
-      changeType: 'increase' as const
-    },
-    {
-      title: 'Team Members',
-      value: '24',
-      change: '4%',
-      icon: UsersIcon,
-      iconColor: 'bg-blue-500/20',
-      changeType: 'increase' as const
-    },
-    {
-      title: 'Average Rating',
-      value: '4.8',
-      change: '2%',
-      icon: StarIcon,
-      iconColor: 'bg-yellow-500/20',
-      changeType: 'decrease' as const
-    },
-    {
-      title: 'Feedback Given',
-      value: '156',
-      change: '8%',
-      icon: MessageSquareIcon,
-      iconColor: 'bg-purple-500/20',
-      changeType: 'increase' as const
-    }
-  ]
-
-  const recentGoals: Goal[] = [
-    {
-      id: 1,
-      title: 'Improve Code Quality',
-      dueDate: 'Due in 5 days',
-      status: 'In Progress'
-    },
-    {
-      id: 2,
-      title: 'Complete Project Documentation',
-      dueDate: 'Due in 2 days',
-      status: 'Completed'
-    },
-    {
-      id: 3,
-      title: 'Team Training Session',
-      dueDate: 'Due tomorrow',
-      status: 'Overdue'
-    }
-  ]
-
-  const upcomingReviews: Review[] = [
-    {
-      id: 1,
-      title: 'Q1 Performance Review',
-      date: 'March 15, 2025'
-    },
-    {
-      id: 2,
-      title: 'Project Milestone Review',
-      date: 'March 20, 2025'
-    },
-    {
-      id: 3,
-      title: 'Team Performance Review',
-      date: 'March 25, 2025'
-    }
-  ]
 
   if (isLoading) {
     return (

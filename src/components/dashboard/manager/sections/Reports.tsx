@@ -18,21 +18,7 @@ export function Reports() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all')
-
-  // Mock data - replace with actual data from your backend
-  const reports: Report[] = [
-    {
-      id: 1,
-      title: 'Team Performance Overview',
-      description: 'Comprehensive analysis of team performance metrics and KPIs',
-      type: 'Performance',
-      format: 'Chart',
-      period: 'Monthly',
-      lastGenerated: '2024-03-15T10:30:00',
-      downloadUrl: '/reports/team-performance.pdf'
-    },
-    // Add more mock reports here
-  ]
+  const [reports, setReports] = useState<Report[]>([])
 
   const getReportIcon = (type: string, format: string) => {
     if (format === 'Chart') {

@@ -14,53 +14,16 @@ interface Goal {
 }
 
 export function GoalApproval() {
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: 1,
-      employeeName: 'John Doe',
-      title: 'Improve Code Quality',
-      description: 'Implement better testing practices and increase code coverage to 80% across all projects.',
-      submittedAt: '2 hours ago',
-      status: 'Pending Review'
-    }
-  ])
-
+  const [goals, setGoals] = useState<Goal[]>([])
   const [feedback, setFeedback] = useState('')
-
-  const stats = [
-    {
-      title: 'Pending Review',
-      value: 8,
-      icon: Clock,
-      color: 'bg-yellow-500/20',
-      textColor: 'text-yellow-400',
-      iconColor: 'text-yellow-400'
-    },
-    {
-      title: 'Approved',
-      value: 24,
-      icon: CheckCircle,
-      color: 'bg-green-500/20',
-      textColor: 'text-green-400',
-      iconColor: 'text-green-400'
-    },
-    {
-      title: 'Needs Revision',
-      value: 3,
-      icon: AlertTriangle,
-      color: 'bg-red-500/20',
-      textColor: 'text-red-400',
-      iconColor: 'text-red-400'
-    },
-    {
-      title: 'Team Members',
-      value: 12,
-      icon: Users,
-      color: 'bg-blue-500/20',
-      textColor: 'text-blue-400',
-      iconColor: 'text-blue-400'
-    }
-  ]
+  const [stats, setStats] = useState<Array<{
+    title: string
+    value: number
+    icon: React.ElementType
+    color: string
+    textColor: string
+    iconColor: string
+  }>>([])
 
   const handleApproveGoal = (goalId: number) => {
     setGoals(goals.map(goal => 

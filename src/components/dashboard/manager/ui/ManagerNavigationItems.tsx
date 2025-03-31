@@ -1,6 +1,6 @@
 'use client'
 
-import { LayoutGrid, Users, Target, Star, FileText, MessageSquare, BarChart2, Calendar, Trophy, FolderKanban } from 'lucide-react'
+import { LayoutGrid, Users, Target, Star, FileText, MessageSquare, BarChart2, Calendar, Trophy, FolderKanban, Award } from 'lucide-react'
 
 interface ManagerNavigationItemsProps {
   selectedTab: string
@@ -12,14 +12,11 @@ export function ManagerNavigationItems({ selectedTab, setSelectedTab, setIsMobil
   const navigationItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutGrid },
     { id: 'team-management', label: 'Team Management', icon: Users },
-    { id: 'goal-setting', label: 'Goal Setting', icon: Target },
     { id: 'goal-approvals', label: 'Goal Approvals', icon: Star },
     { id: 'performance-reviews', label: 'Performance Reviews', icon: FileText },
+    { id: 'manager-rating', label: 'Manager Rating', icon: Award },
     { id: 'team-feedback', label: 'Team Feedback', icon: MessageSquare },
     { id: 'reports', label: 'Reports', icon: BarChart2 },
-    { id: 'review-schedule', label: 'Review Schedule', icon: Calendar },
-    { id: 'team-achievements', label: 'Team Achievements', icon: Trophy },
-    { id: 'projects', label: 'Projects', icon: FolderKanban }
   ]
 
   return (
