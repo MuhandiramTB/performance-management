@@ -1,6 +1,8 @@
 'use client'
 
 import { TargetIcon, UsersIcon, StarIcon, MessageSquareIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase'
 
 interface StatCardProps {
   title: string
@@ -46,6 +48,23 @@ interface Review {
 }
 
 export function EmployeeOverview() {
+  const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch data from Supabase here
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
   const stats = [
     {
       title: 'Goals Completed',
@@ -119,6 +138,14 @@ export function EmployeeOverview() {
       date: 'March 25, 2025'
     }
   ]
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
