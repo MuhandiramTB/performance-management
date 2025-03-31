@@ -32,9 +32,12 @@ const nextConfig = {
   },
   // Handle environment variables during static page generation
   env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
+  // Disable static page generation for dynamic routes
+  unstable_runtimeJS: true,
+  unstable_JsPreload: false,
 }
 
 module.exports = nextConfig 
