@@ -20,6 +20,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   useEffect(() => {
+    if (!supabase) {
+      console.error('Supabase client is not available')
+      setLoading(false)
+      return
+    }
+
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -35,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase])
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

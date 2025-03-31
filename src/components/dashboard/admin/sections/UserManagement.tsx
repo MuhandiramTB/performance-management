@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import { UserModal } from '../modals/UserModal'
 
 interface User {
@@ -29,6 +29,7 @@ export function UserManagement({ onBack }: UserManagementProps) {
     role: 'user',
     status: 'active'
   })
+  const supabase = createClient()
 
   // Search users
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +39,11 @@ export function UserManagement({ onBack }: UserManagementProps) {
 
   // Enhanced user management functions
   const handleAddUser = async () => {
+    if (!supabase) {
+      console.error('Supabase client is not available')
+      return
+    }
+
     try {
       const { data, error } = await supabase
         .from('users')
@@ -60,7 +66,10 @@ export function UserManagement({ onBack }: UserManagementProps) {
   }
 
   const handleUpdateUser = async () => {
-    if (!selectedUser) return
+    if (!selectedUser || !supabase) {
+      console.error('Supabase client is not available or no user selected')
+      return
+    }
 
     try {
       const { error } = await supabase
@@ -79,7 +88,9 @@ export function UserManagement({ onBack }: UserManagementProps) {
   }
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return
+    if (!confirm('Are you sure you want to delete this user?') || !supabase) {
+      return
+    }
 
     try {
       const { error } = await supabase

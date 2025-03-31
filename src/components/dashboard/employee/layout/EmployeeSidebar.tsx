@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { EmployeeNavigationItems } from '../ui/EmployeeNavigationItems'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import { LogOut, Menu } from 'lucide-react'
 
 interface SidebarProps {
@@ -19,8 +19,14 @@ export function EmployeeSidebar({
   setIsMobileMenuOpen
 }: SidebarProps) {
   const router = useRouter()
+  const supabase = createClient()
 
   const handleLogout = async () => {
+    if (!supabase) {
+      console.error('Supabase client is not available')
+      return
+    }
+
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error

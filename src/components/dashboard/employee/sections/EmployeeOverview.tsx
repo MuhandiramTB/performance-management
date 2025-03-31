@@ -54,6 +54,11 @@ export function EmployeeOverview() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        if (!supabase) {
+          console.warn('Supabase client is not available')
+          setIsLoading(false)
+          return
+        }
         // Fetch data from Supabase here
         setIsLoading(false)
       } catch (error) {
@@ -63,7 +68,7 @@ export function EmployeeOverview() {
     }
 
     fetchData()
-  }, [])
+  }, [supabase])
 
   const stats = [
     {

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,11 +12,18 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    if (!supabase) {
+      setError('Authentication service is not available')
+      setLoading(false)
+      return
+    }
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
