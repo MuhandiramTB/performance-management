@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,18 +12,26 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const supabase = createClient()
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          router.push('/dashboard/admin')
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
+      }
+    }
+    checkUser()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
-
-    if (!supabase) {
-      setError('Authentication service is not available')
-      setLoading(false)
-      return
-    }
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -37,6 +45,7 @@ export default function LoginPage() {
 
       if (data?.user) {
         router.push('/dashboard/admin')
+        router.refresh()
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred')
