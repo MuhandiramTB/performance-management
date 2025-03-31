@@ -1,348 +1,310 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-
-interface PasswordStrength {
-  hasEightChars: boolean
-  hasUppercase: boolean
-  hasLowercase: boolean
-  hasNumber: boolean
-}
+import { User, Mail, Lock, UserCircle2, ArrowRight, Check } from 'lucide-react'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    department: '',
-    role: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   })
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState(0)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
-  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
-    hasEightChars: false,
-    hasUppercase: false,
-    hasLowercase: false,
-    hasNumber: false
-  })
-
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-
-  const departments = [
-    'Engineering',
-    'Marketing',
-    'Sales',
-    'Human Resources',
-    'Finance',
-    'Operations'
-  ]
-
-  const roles = [
-    'Employee',
-    'Manager',
-    'Team Lead',
-    'Administrator'
-  ]
-
-  const checkPasswordStrength = (password: string) => {
-    setPasswordStrength({
-      hasEightChars: password.length >= 8,
-      hasUppercase: /[A-Z]/.test(password),
-      hasLowercase: /[a-z]/.test(password),
-      hasNumber: /[0-9]/.test(password)
-    })
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
 
+    // Calculate password strength
     if (name === 'password') {
-      checkPasswordStrength(value)
+      let strength = 0
+      if (value.length >= 8) strength += 1
+      if (/[A-Z]/.test(value)) strength += 1
+      if (/[a-z]/.test(value)) strength += 1
+      if (/[0-9]/.test(value)) strength += 1
+      if (/[^A-Za-z0-9]/.test(value)) strength += 1
+      setPasswordStrength(strength)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement registration logic
-    console.log('Form submitted:', formData)
+    setError('')
+    setIsLoading(true)
+
+    if (!acceptedTerms) {
+      setError('Please accept the Terms of Service and Privacy Policy')
+      setIsLoading(false)
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          password: formData.password,
+          role: 'employee' // Default role
+        }),
+      })
+
+      // First try to parse the response as JSON
+      let data
+      try {
+        data = await response.json()
+      } catch (e) {
+        throw new Error('Invalid response from server')
+      }
+
+      // Check if the response was successful
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed')
+      }
+
+      // Registration successful, redirect to dashboard
+      router.push('/dashboard/employee')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during registration')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength <= 1) return 'bg-red-500'
+    if (passwordStrength <= 3) return 'bg-yellow-500'
+    return 'bg-green-500'
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0b14] flex items-center justify-center p-4 lg:p-8">
-      <div className="w-full max-w-[1200px] bg-[#1a1b2e] rounded-2xl shadow-2xl overflow-hidden">
-        {/* Progress Header - New Addition */}
-        <div className="w-full bg-[#252a3d] p-4 lg:p-6 border-b border-gray-700/50">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#6c47ff] rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-xl lg:text-2xl font-semibold text-white">Create Account</h1>
-                <p className="text-sm text-gray-400">Fill in your information to get started</p>
-              </div>
-            </div>
-            <div className="hidden lg:flex items-center gap-2">
-              <span className="text-sm text-gray-400">Already have an account?</span>
-              <Link 
-                href="/login" 
-                className="px-4 py-2 text-sm text-white bg-[#252a3d] border border-gray-700/50 rounded-lg hover:bg-[#2f3548] transition-colors"
-              >
-                Sign in
-              </Link>
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a14] to-[#1a1a2e] p-4">
+      <div className="w-full max-w-md">
+        {/* Logo and Title */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10 mb-4">
+            <User className="w-8 h-8 text-blue-500" />
           </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Create Your Account</h1>
+          <p className="text-gray-400">Join us to start managing your performance</p>
         </div>
 
-        {/* Main Content */}
-        <div className="p-4 lg:p-8">
-          <div className="max-w-4xl mx-auto grid lg:grid-cols-2 gap-8">
-            {/* Personal Information */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-[#6c47ff] rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-white">Personal Information</h2>
-                  <p className="text-sm text-gray-400">Enter your personal details</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">First Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#252a3d] border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#6c47ff] transition-colors"
-                      placeholder="John"
-                    />
-                    <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Last Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#252a3d] border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#6c47ff] transition-colors"
-                      placeholder="Doe"
-                    />
-                    <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Email</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#252a3d] border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#6c47ff] transition-colors"
-                    placeholder="john.doe@company.com"
-                  />
-                  <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Department</label>
-                <div className="relative">
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#252a3d] border border-gray-700/50 rounded-lg text-white focus:outline-none focus:border-[#6c47ff] transition-colors appearance-none"
-                  >
-                    <option value="">Select department</option>
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                  <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Role</label>
-                <div className="relative">
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#252a3d] border border-gray-700/50 rounded-lg text-white focus:outline-none focus:border-[#6c47ff] transition-colors appearance-none"
-                  >
-                    <option value="">Select role</option>
-                    {roles.map(role => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                  </select>
-                  <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              </div>
+        {/* Registration Form */}
+        <div className="bg-[#151524]/40 backdrop-blur-lg rounded-2xl p-8 border border-gray-800/50 shadow-xl">
+          {error && (
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+              {error}
             </div>
+          )}
 
-            {/* Security */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-[#6c47ff] rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-white">Security</h2>
-                  <p className="text-sm text-gray-400">Set up your account security</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Password</label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Name Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="text-sm font-medium text-gray-300">
+                  First Name
+                </label>
                 <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <UserCircle2 className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-12 py-2.5 bg-[#252a3d] border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#6c47ff] transition-colors"
-                    placeholder="Create a strong password"
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    required
+                    className="block w-full pl-10 pr-3 py-2.5 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    placeholder="First"
+                    value={formData.firstName}
+                    onChange={handleChange}
                   />
-                  <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={
-                        showPassword
-                          ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                          : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                      } />
-                    </svg>
-                  </button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm text-gray-400">Password strength:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className={`flex items-center gap-2 text-sm ${passwordStrength.hasEightChars ? 'text-green-500' : 'text-gray-500'}`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={passwordStrength.hasEightChars ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
-                    </svg>
-                    8+ characters
-                  </div>
-                  <div className={`flex items-center gap-2 text-sm ${passwordStrength.hasUppercase ? 'text-green-500' : 'text-gray-500'}`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={passwordStrength.hasUppercase ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
-                    </svg>
-                    Uppercase
-                  </div>
-                  <div className={`flex items-center gap-2 text-sm ${passwordStrength.hasLowercase ? 'text-green-500' : 'text-gray-500'}`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={passwordStrength.hasLowercase ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
-                    </svg>
-                    Lowercase
-                  </div>
-                  <div className={`flex items-center gap-2 text-sm ${passwordStrength.hasNumber ? 'text-green-500' : 'text-gray-500'}`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={passwordStrength.hasNumber ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
-                    </svg>
-                    Number
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Confirm Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#252a3d] border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#6c47ff] transition-colors"
-                    placeholder="Confirm your password"
-                  />
-                  <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="max-w-4xl mx-auto mt-8 pt-8 border-t border-gray-700/50">
-            <div className="flex flex-col-reverse lg:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2 w-full lg:w-auto">
-                <input
-                  type="checkbox"
-                  id="terms"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-700/50 text-[#6c47ff] focus:ring-[#6c47ff] focus:ring-offset-0 focus:ring-offset-transparent bg-[#252a3d]"
-                />
-                <label htmlFor="terms" className="text-sm text-gray-400">
-                  I agree to the{' '}
-                  <Link href="/terms" className="text-[#6c47ff] hover:text-[#5538cc] transition-colors">
-                    Terms of Service
-                  </Link>
-                  {' '}and{' '}
-                  <Link href="/privacy" className="text-[#6c47ff] hover:text-[#5538cc] transition-colors">
-                    Privacy Policy
-                  </Link>
+                <label htmlFor="lastName" className="text-sm font-medium text-gray-300">
+                  Last Name
                 </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <UserCircle2 className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    required
+                    className="block w-full pl-10 pr-3 py-2.5 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    placeholder="Last"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
-              <button
-                onClick={handleSubmit}
-                disabled={!agreedToTerms}
-                className="w-full lg:w-auto px-8 py-2.5 bg-[#6c47ff] text-white rounded-lg hover:bg-[#5538cc] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <span>Create Account</span>
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
             </div>
-          </div>
 
-          {/* Mobile Sign In Link */}
-          <div className="mt-6 text-center lg:hidden">
+            {/* Email */}
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-gray-300">
+                Email
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  className="block w-full pl-10 pr-3 py-2.5 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-gray-300">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="block w-full pl-10 pr-3 py-2.5 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholder="Create a strong password"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* Password Strength Indicator */}
+              <div className="mt-2">
+                <div className="w-full bg-gray-700 rounded-full h-1.5">
+                  <div 
+                    className={`h-1.5 rounded-full ${getPasswordStrengthColor()}`} 
+                    style={{ width: `${passwordStrength * 20}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
+                  Password strength: {passwordStrength <= 1 ? 'Weak' : passwordStrength <= 3 ? 'Medium' : 'Strong'}
+                </div>
+                <ul className="text-xs text-gray-400 mt-2 space-y-1">
+                  <li className={`flex items-center ${formData.password.length >= 8 ? 'text-green-400' : ''}`}>
+                    <Check className="w-3 h-3 mr-1" /> 8+ characters
+                  </li>
+                  <li className={`flex items-center ${/[A-Z]/.test(formData.password) ? 'text-green-400' : ''}`}>
+                    <Check className="w-3 h-3 mr-1" /> Uppercase letter
+                  </li>
+                  <li className={`flex items-center ${/[a-z]/.test(formData.password) ? 'text-green-400' : ''}`}>
+                    <Check className="w-3 h-3 mr-1" /> Lowercase letter
+                  </li>
+                  <li className={`flex items-center ${/[0-9]/.test(formData.password) ? 'text-green-400' : ''}`}>
+                    <Check className="w-3 h-3 mr-1" /> Number
+                  </li>
+                  <li className={`flex items-center ${/[^A-Za-z0-9]/.test(formData.password) ? 'text-green-400' : ''}`}>
+                    <Check className="w-3 h-3 mr-1" /> Special character
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-300">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  className="block w-full pl-10 pr-3 py-2.5 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* Terms and Conditions */}
+            <div className="flex items-start space-x-3">
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                className="mt-1 h-4 w-4 text-blue-500 border-gray-700 rounded bg-[#1a1a2e] focus:ring-blue-500 focus:ring-offset-[#151524]"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+              />
+              <label htmlFor="terms" className="text-sm text-gray-300">
+                I agree to the{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Terms of Service</a>
+                {' '}and{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Privacy Policy</a>
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
+                isLoading ? 'opacity-75 cursor-not-allowed' : ''
+              }`}
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  Create Account
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Login Link */}
+          <div className="mt-6 text-center">
             <p className="text-sm text-gray-400">
               Already have an account?{' '}
-              <Link href="/login" className="text-[#6c47ff] hover:text-[#5538cc] transition-colors">
+              <Link
+                href="/login"
+                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              >
                 Sign in
               </Link>
             </p>

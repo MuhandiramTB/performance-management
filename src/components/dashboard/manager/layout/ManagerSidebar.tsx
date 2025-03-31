@@ -43,14 +43,7 @@ export function ManagerSidebar({
       `}>
         <div className="flex flex-col h-full">
           <div className="p-4">
-            <div className="flex items-center gap-2 px-2 mb-8">
-              <div className="bg-[#6c47ff] rounded-lg p-2">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
-              </div>
-              <span className="text-lg font-semibold text-white">Manager Portal</span>
-            </div>
+            
 
             <ManagerNavigationItems
               selectedTab={selectedTab}

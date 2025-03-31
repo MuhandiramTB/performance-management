@@ -2,145 +2,135 @@
 
 import { TargetIcon, UsersIcon, StarIcon, MessageSquareIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
 
 interface StatCardProps {
   title: string
-  value: string | number
-  change: string
+  value: number
   icon: React.ElementType
-  iconColor: string
-  changeType: 'increase' | 'decrease'
+  color: string
 }
 
-function StatCard({ title, value, change, icon: Icon, iconColor, changeType }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, color }: StatCardProps) {
   return (
-    <div className="p-6 bg-gray-800 rounded-lg">
+    <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-gray-400">{title}</h3>
-        <div className={`p-2 rounded-lg ${iconColor}`}>
-          <Icon className="w-6 h-6 text-white" />
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-2xl font-semibold mt-1">{value}</p>
         </div>
-      </div>
-      <div className="mt-4">
-        <div className="text-3xl font-semibold text-white">{value}</div>
-        <div className={`mt-1 text-sm ${
-          changeType === 'increase' ? 'text-green-400' : 'text-red-400'
-        }`}>
-          {changeType === 'increase' ? '↑' : '↓'} {change} from last month
+        <div className={`p-3 rounded-full ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
         </div>
       </div>
     </div>
   )
 }
 
-interface Goal {
-  id: number
-  title: string
-  dueDate: string
-  status: 'In Progress' | 'Completed' | 'Overdue'
-}
-
-interface Review {
-  id: number
-  title: string
-  date: string
-}
-
 export function EmployeeOverview() {
+  const [stats, setStats] = useState({
+    goals: 0,
+    teamMembers: 0,
+    ratings: 0,
+    feedback: 0
+  })
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
-
-  // State variables for data
-  const [stats, setStats] = useState<StatCardProps[]>([])
-  const [recentGoals, setRecentGoals] = useState<Goal[]>([])
-  const [upcomingReviews, setUpcomingReviews] = useState<Review[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStats = async () => {
       try {
-        if (!supabase) {
-          console.warn('Supabase client is not available')
-          setIsLoading(false)
-          return
+        setIsLoading(true)
+        setError(null)
+        const response = await fetch('/api/employee/stats')
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch stats')
         }
-        // Fetch data from Supabase here
-        setIsLoading(false)
+
+        const data = await response.json()
+        setStats(data)
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('Error fetching stats:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch stats')
+      } finally {
         setIsLoading(false)
       }
     }
 
-    fetchData()
-  }, [supabase])
+    fetchStats()
+  }, [])
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Loading...</div>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
+          <p className="text-gray-600 mt-1">Your performance metrics and activities</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="bg-white rounded-lg shadow p-6 animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  <div className="h-8 bg-gray-200 rounded w-16"></div>
+                </div>
+                <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
+          <p className="text-gray-600 mt-1">Your performance metrics and activities</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600">{error}</p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
-        ))}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
+        <p className="text-gray-600 mt-1">Your performance metrics and activities</p>
       </div>
 
-      {/* Recent Goals and Upcoming Reviews */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Goals */}
-        <div className="p-6 bg-gray-800 rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-white">Recent Goals</h2>
-            <button className="text-sm text-gray-400 hover:text-white">View All →</button>
-          </div>
-          <div className="space-y-4">
-            {recentGoals.map((goal) => (
-              <div key={goal.id} className="p-4 bg-gray-700/50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white">{goal.title}</h3>
-                  <span className={`px-2 py-1 text-xs rounded ${
-                    goal.status === 'Completed' ? 'bg-green-500/20 text-green-400' :
-                    goal.status === 'In Progress' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
-                    {goal.status}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-gray-400">{goal.dueDate}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Upcoming Reviews */}
-        <div className="p-6 bg-gray-800 rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-white">Upcoming Reviews</h2>
-            <button className="text-sm text-gray-400 hover:text-white">View All →</button>
-          </div>
-          <div className="space-y-4">
-            {upcomingReviews.map((review) => (
-              <div key={review.id} className="p-4 bg-gray-700/50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white">{review.title}</h3>
-                  <button className="p-1">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                </div>
-                <p className="mt-1 text-sm text-gray-400">{review.date}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Active Goals"
+          value={stats.goals}
+          icon={TargetIcon}
+          color="bg-blue-500"
+        />
+        <StatCard
+          title="Team Members"
+          value={stats.teamMembers}
+          icon={UsersIcon}
+          color="bg-green-500"
+        />
+        <StatCard
+          title="Self Ratings"
+          value={stats.ratings}
+          icon={StarIcon}
+          color="bg-yellow-500"
+        />
+        <StatCard
+          title="Feedback"
+          value={stats.feedback}
+          icon={MessageSquareIcon}
+          color="bg-purple-500"
+        />
       </div>
     </div>
   )

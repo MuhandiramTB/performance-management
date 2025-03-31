@@ -1,8 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { EmployeeNavigationItems } from '../ui/EmployeeNavigationItems'
-import { createClient } from '@/lib/supabase'
 import { LogOut, Menu } from 'lucide-react'
 
 interface SidebarProps {
@@ -18,61 +18,39 @@ export function EmployeeSidebar({
   isMobileMenuOpen,
   setIsMobileMenuOpen
 }: SidebarProps) {
+  const [isOpen, setIsOpen] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogout = async () => {
-    if (!supabase) {
-      console.error('Supabase client is not available')
-      return
-    }
-
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      await fetch('/api/auth/logout', { method: 'POST' })
       router.push('/login')
     } catch (error) {
-      console.error('Error logging out:', error)
+      console.error('Logout error:', error)
     }
   }
 
   return (
-    <>
-      <div className={`
-        fixed lg:sticky lg:top-0 inset-0 z-20 bg-[#151524] w-64 h-screen transform transition-transform duration-200 ease-in-out border-r border-gray-800
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="flex flex-col h-full">
-          <div className="p-4">
-            
+    <div className="flex h-full flex-col">
+      
 
-            <EmployeeNavigationItems
-              selectedTab={selectedTab}
-              setSelectedTab={setSelectedTab}
-              setIsMobileMenuOpen={setIsMobileMenuOpen}
-            />
-                      <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-2 px-4 py-1 text-md font-medium rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Logout
-            </button>
-          </div>
-
-
-          
-        </div>
-      </div>
-
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-10 bg-black/50 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
+      <nav className="mt-4 flex-1">
+        <EmployeeNavigationItems
+          selectedTab={selectedTab}
+          setSelectedTab={setSelectedTab}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
-      )}
-    </>
+      </nav>
+
+      <div className="p-4">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2 rounded-lg p-2 text-red-600 hover:bg-red-50"
+        >
+          <LogOut className="h-5 w-5" />
+          {isOpen && <span>Logout</span>}
+        </button>
+      </div>
+    </div>
   )
 } 

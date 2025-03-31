@@ -66,9 +66,6 @@ export default function ManagerDashboard() {
     switch (selectedTab) {
       case 'dashboard':
         return <ManagerOverview />
-      case 'team-management':
-        return <TeamManagement />
-      
       case 'goal-approvals':
         return <GoalApprovals />
       case 'performance-reviews':
@@ -77,12 +74,8 @@ export default function ManagerDashboard() {
         return <Feedback />
       case 'reports':
         return <Reports />
-      case 'review-schedule':
-        return <ReviewSchedule />
-      case 'team-achievements':
-        return <TeamAchievements />
-      case 'projects':
-        return <Projects />
+    
+      
       case 'manager-rating':
         return <ManagerRating />
       default:

@@ -63,11 +63,27 @@ yarn dev
 ```
 performance-management/
 ├── src/
-│   ├── app/                 # Next.js app directory
-│   ├── components/          # React components
-│   ├── lib/                 # Utility functions and configurations
-│   └── types/              # TypeScript type definitions
-├── public/                 # Static assets
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── login/
+│   │   │   ├── register/
+│   │   │   └── unauthorized/
+│   │   ├── (dashboard)/
+│   │   │   ├── admin/
+│   │   │   ├── manager/
+│   │   │   └── employee/
+│   │   ├── api/
+│   │   │   └── auth/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── globals.css
+│   ├── components/
+│   │   └── dashboard/
+│   ├── contexts/
+│   │   └── AuthContext.tsx
+│   ├── lib/
+│   │   └── auth.ts
+│   └── middleware.ts
 └── package.json           # Project dependencies
 ```
 
@@ -82,3 +98,19 @@ performance-management/
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Demo Credentials
+
+Admin:
+Email: admin@example.com
+Password: admin123
+
+Manager:
+Email: manager@example.com
+Password: manager123
+
+Employee:
+Email: employee@example.com
+Password: employee123
+
+
