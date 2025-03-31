@@ -1,12 +1,16 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 
-// Create a single supabase client for interacting with your database
-export const createClient = () => createClientComponentClient<Database>()
+// Create a single supabase client for interacting with your database in the browser
+export const createClient = () => {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 // For backward compatibility with existing code
-export const supabase = createClientComponentClient<Database>()
-
-// Server-side client creation function
-export const createServerClient = (cookies: any) => createServerComponentClient<Database>({ cookies }) 
+export const supabase = createBrowserClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+) 
