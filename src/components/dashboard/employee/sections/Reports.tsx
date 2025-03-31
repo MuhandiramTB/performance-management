@@ -102,6 +102,7 @@ export function Reports() {
   const [showErrorToast, setShowErrorToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [availableReports, setAvailableReports] = useState<Report[]>([])
 
   useEffect(() => {
     // Set default date range to last 30 days
@@ -112,8 +113,6 @@ export function Reports() {
     setStartDate(thirtyDaysAgo.toISOString().split('T')[0])
     setEndDate(today.toISOString().split('T')[0])
   }, [])
-
-  const availableReports: Report[] = []
 
   const handleMetricToggle = (metricId: string) => {
     setMetrics(metrics.map(metric => 
@@ -188,6 +187,7 @@ export function Reports() {
         }
       }
 
+      setAvailableReports(prev => [...prev, newReport])
       setShowSuccessToast(true)
       setToastMessage('Report generated successfully')
     } catch (error) {
