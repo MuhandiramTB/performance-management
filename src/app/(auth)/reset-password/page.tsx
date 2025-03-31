@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { User, Lock, ArrowRight } from 'lucide-react'
 
-function ResetPasswordForm() {
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
+// Separate component for handling search params
+function ResetPasswordContent() {
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -24,12 +23,6 @@ function ResetPasswordForm() {
       return
     }
 
-    if (!token) {
-      setError('Invalid reset token')
-      setIsLoading(false)
-      return
-    }
-
     try {
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
@@ -38,7 +31,7 @@ function ResetPasswordForm() {
           Accept: 'application/json',
         },
         body: JSON.stringify({
-          token,
+          token: new URLSearchParams(window.location.search).get('token'),
           password,
         }),
       })
@@ -58,6 +51,8 @@ function ResetPasswordForm() {
     }
   }
 
+  // Check for token
+  const token = new URLSearchParams(window.location.search).get('token')
   if (!token) {
     return (
       <div className="text-center">
@@ -170,7 +165,7 @@ export default function ResetPasswordPage() {
           <p className="text-gray-400">Loading...</p>
         </div>
       }>
-        <ResetPasswordForm />
+        <ResetPasswordContent />
       </Suspense>
     </div>
   )
