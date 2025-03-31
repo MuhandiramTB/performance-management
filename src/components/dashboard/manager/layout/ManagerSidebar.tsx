@@ -1,7 +1,6 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { LayoutGrid, Users, Target, Star, FileText, MessageSquare, BarChart2, Calendar, Trophy, FolderKanban, Award } from 'lucide-react'
 import { ManagerNavigationItems } from '../ui/ManagerNavigationItems'
 
@@ -19,10 +18,9 @@ export function ManagerSidebar({
   setIsMobileMenuOpen
 }: ManagerSidebarProps) {
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    // Implement your logout logic here
     router.push('/login')
   }
 
@@ -43,8 +41,6 @@ export function ManagerSidebar({
       `}>
         <div className="flex flex-col h-full">
           <div className="p-4">
-            
-
             <ManagerNavigationItems
               selectedTab={selectedTab}
               setSelectedTab={setSelectedTab}

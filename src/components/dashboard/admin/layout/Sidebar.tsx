@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Menu, X, LogOut, LayoutDashboard, Users, History, Settings, Shield } from 'lucide-react'
 import { AdminNavigationItems } from '../ui/AdminNavigationItems'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface SidebarProps {
   selectedTab: string
@@ -19,24 +18,20 @@ const navigationItems = [
     label: 'Admin Management',
     icon: Shield,
     href: '/dashboard/admin'
-  }
-,
+  },
   {
     id: 'audit',
     label: 'Audit Logs',
     icon: History,
     href: '/dashboard/admin/audit'
-  },
-  
-  
+  }
 ]
 
 export function Sidebar({ selectedTab, setSelectedTab, isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    // Implement your logout logic here
     router.push('/login')
   }
 
@@ -48,8 +43,6 @@ export function Sidebar({ selectedTab, setSelectedTab, isMobileMenuOpen, setIsMo
       `}>
         <div className="mt-15 flex flex-col h-50">
           <div className="p-4">
-            
-
             <AdminNavigationItems
               selectedTab={selectedTab}
               setSelectedTab={setSelectedTab}
