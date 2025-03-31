@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import AdminDashboard from './page'
 
 export default async function AdminDashboardLayout() {
-  const supabase = createServerClient()
+  const cookieStore = cookies()
+  const supabase = createServerClient(cookieStore)
   
   const {
     data: { session },
