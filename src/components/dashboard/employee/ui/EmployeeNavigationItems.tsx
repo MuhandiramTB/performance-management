@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Target, Star, MessageSquare, BarChart } from 'lucide-react'
+import { Home, Target, Star, MessageSquare, BarChart, Clock } from 'lucide-react'
 
 interface NavigationItemsProps {
   selectedTab: string
@@ -9,11 +9,12 @@ interface NavigationItemsProps {
 }
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home },
-  { id: 'goal-setting', label: 'Goal Setting', icon: Target },
-  { id: 'self-rating', label: 'Self Rating', icon: Star },
-  { id: 'feedback', label: 'Feedback', icon: MessageSquare },
-  { id: 'reports', label: 'Reports', icon: BarChart }
+  { id: 'dashboard', label: 'Overview', icon: Home },
+  { id: 'goals', label: 'Goals', icon: Target, description: 'Set and track performance goals' },
+  { id: 'ratings', label: 'Ratings', icon: Star, description: 'Submit self-ratings and view manager feedback' },
+  { id: 'feedback', label: 'Feedback', icon: MessageSquare, description: 'View and respond to performance feedback' },
+  { id: 'reports', label: 'Reports', icon: BarChart, description: 'View performance reports and analytics' },
+  { id: 'schedule', label: 'Schedule', icon: Clock, description: 'View rating periods and deadlines' }
 ]
 
 export function EmployeeNavigationItems({
@@ -42,7 +43,12 @@ export function EmployeeNavigationItems({
             }`}
           >
             <Icon className={`w-5 h-5 ${isSelected ? 'text-white' : ''}`} />
-            {item.label}
+            <div className="flex flex-col items-start">
+              <span>{item.label}</span>
+              {item.description && (
+                <span className="text-xs text-gray-500">{item.description}</span>
+              )}
+            </div>
           </button>
         )
       })}
