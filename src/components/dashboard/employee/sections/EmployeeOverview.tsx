@@ -1,6 +1,6 @@
 'use client'
 
-import { TargetIcon, UsersIcon, StarIcon, MessageSquareIcon } from 'lucide-react'
+import { Target, Users, Star, MessageSquare } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface StatCardProps {
@@ -89,25 +89,25 @@ export function EmployeeOverview() {
         <StatCard
           title="Active Goals"
           value={stats.goals}
-          icon={TargetIcon}
+          icon={Target}
           color="bg-blue-500"
         />
         <StatCard
           title="Team Members"
           value={stats.teamMembers}
-          icon={UsersIcon}
+          icon={Users}
           color="bg-green-500"
         />
         <StatCard
           title="Self Ratings"
           value={stats.ratings}
-          icon={StarIcon}
+          icon={Star}
           color="bg-yellow-500"
         />
         <StatCard
           title="Feedback"
           value={stats.feedback}
-          icon={MessageSquareIcon}
+          icon={MessageSquare}
           color="bg-purple-500"
         />
       </div>

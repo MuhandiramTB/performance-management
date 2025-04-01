@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BarChart2, PieChart, LineChart, Download, Calendar, Filter, ChevronRight, FileText } from 'lucide-react'
+import { BarChart, PieChart, LineChart, Download, Calendar, Filter, ChevronRight, FileText } from 'lucide-react'
 
 interface Report {
   id: number
@@ -24,7 +24,7 @@ export function Reports() {
     if (format === 'Chart') {
       switch (type) {
         case 'Performance':
-          return <BarChart2 className="w-5 h-5 text-purple-500" />
+          return <BarChart className="w-5 h-5 text-purple-500" />
         case 'Feedback':
           return <PieChart className="w-5 h-5 text-blue-500" />
         case 'Goals':

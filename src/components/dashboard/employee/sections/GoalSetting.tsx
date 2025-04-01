@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Pencil, Trash2, Plus, Calendar, Target, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Pencil, Trash2, Plus, Calendar, Target, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react'
 import { NewGoalModal } from '../modals/NewGoalModal'
 
 interface Goal {
@@ -16,6 +16,82 @@ interface Goal {
 export function GoalSetting() {
   const [isNewGoalModalOpen, setIsNewGoalModalOpen] = useState(false)
   const [goals, setGoals] = useState<Goal[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchGoals()
+  }, [])
+
+  const fetchGoals = async () => {
+    try {
+      const response = await fetch('/api/goals')
+      if (!response.ok) throw new Error('Failed to fetch goals')
+      const data = await response.json()
+      setGoals(data)
+    } catch (error) {
+      console.error('Error fetching goals:', error)
+      setError('Failed to load goals')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteGoal = async (goalId: number) => {
+    try {
+      const response = await fetch(`/api/goals?id=${goalId}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete goal')
+      
+      setGoals(goals.filter(goal => goal.id !== goalId))
+    } catch (error) {
+      console.error('Error deleting goal:', error)
+      setError('Failed to delete goal')
+    }
+  }
+
+  const handleEditGoal = async (goalId: number, updatedData: Partial<Goal>) => {
+    try {
+      const response = await fetch('/api/goals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: goalId, ...updatedData })
+      })
+      if (!response.ok) throw new Error('Failed to update goal')
+      
+      const updatedGoal = await response.json()
+      setGoals(goals.map(goal => 
+        goal.id === goalId ? updatedGoal : goal
+      ))
+    } catch (error) {
+      console.error('Error updating goal:', error)
+      setError('Failed to update goal')
+    }
+  }
+
+  const handleAddGoal = async (newGoal: Omit<Goal, 'id'>) => {
+    try {
+      const response = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newGoal)
+      })
+      if (!response.ok) throw new Error('Failed to create goal')
+      
+      const createdGoal = await response.json()
+      setGoals([...goals, createdGoal])
+      setIsNewGoalModalOpen(false)
+    } catch (error) {
+      console.error('Error creating goal:', error)
+      setError('Failed to create goal')
+    }
+  }
+
+  const handleUpdateProgress = async (goalId: number, progress: number) => {
+    const status = progress === 100 ? 'Completed' : progress > 0 ? 'In Progress' : 'Not Started'
+    await handleEditGoal(goalId, { progress, status })
+  }
 
   const getStatusColor = (status: Goal['status']) => {
     switch (status) {
@@ -32,26 +108,23 @@ export function GoalSetting() {
     }
   }
 
-  const handleDeleteGoal = (goalId: number) => {
-    setGoals(goals.filter(goal => goal.id !== goalId))
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    )
   }
 
-  const handleEditGoal = (goalId: number) => {
-    // Implement edit functionality
-    console.log('Edit goal:', goalId)
-  }
-
-  const handleAddGoal = (newGoal: Omit<Goal, 'id'>) => {
-    setGoals([...goals, { ...newGoal, id: goals.length + 1 }])
-    setIsNewGoalModalOpen(false)
-  }
-
-  const handleUpdateProgress = (goalId: number, progress: number) => {
-    setGoals(goals.map(goal => 
-      goal.id === goalId 
-        ? { ...goal, progress, status: progress === 100 ? 'Completed' : progress > 0 ? 'In Progress' : 'Not Started' }
-        : goal
-    ))
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -116,7 +189,7 @@ export function GoalSetting() {
         <div className="p-6 bg-[#151524] rounded-xl border border-gray-800/50 hover:border-red-500/30 transition-all duration-200">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-red-500/20">
-              <AlertCircle className="w-6 h-6 text-red-400" />
+              <AlertTriangle className="w-6 h-6 text-red-400" />
             </div>
             <div>
               <h3 className="text-lg font-medium text-white">Overdue</h3>
@@ -129,117 +202,77 @@ export function GoalSetting() {
       </div>
 
       {/* Goals List */}
-      <div className="bg-[#151524] rounded-xl p-6 border border-gray-800/50">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-white">Current Goals</h2>
-            {goals.length === 0 && (
-              <button
-                onClick={() => {
-                  // Simulate fetching goals
-                  console.log('Fetching all goals...')
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6c47ff] bg-[#6c47ff]/10 rounded-lg hover:bg-[#6c47ff]/20 transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                View All
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Calendar className="w-4 h-4" />
-            <span>Due Date</span>
-          </div>
-        </div>
-        
-        {goals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-[#6c47ff]/10 flex items-center justify-center mb-4">
-              <Target className="w-8 h-8 text-[#6c47ff]" />
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">No Goals Found</h3>
-            <p className="text-gray-400 mb-6">You haven't set any performance goals yet.</p>
-            <button
-              onClick={() => setIsNewGoalModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-[#6c47ff] rounded-lg hover:bg-[#5a3dd8] transition-all duration-200 hover:shadow-lg hover:shadow-[#6c47ff]/20"
-            >
-              <Plus className="w-5 h-5" />
-              Create New Goal
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {goals.map((goal) => (
-              <div
-                key={goal.id}
-                className="p-6 bg-[#1E293B] rounded-lg border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-3 flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-medium text-white">{goal.title}</h3>
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(goal.status)}`}>
-                        {goal.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-400">{goal.description}</p>
-                    
-                    {/* Progress Bar */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Progress</span>
-                        <span className="text-white font-medium">{goal.progress}%</span>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            goal.status === 'Completed' ? 'bg-green-500' :
-                            goal.status === 'In Progress' ? 'bg-yellow-500' :
-                            goal.status === 'Overdue' ? 'bg-red-500' :
-                            'bg-gray-500'
-                          }`}
-                          style={{ width: `${goal.progress}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{goal.dueDate}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <button
-                      onClick={() => handleEditGoal(goal.id)}
-                      className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700/50 transition-colors"
-                      title="Edit Goal"
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGoal(goal.id)}
-                      className="p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
-                      title="Delete Goal"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+      <div className="space-y-4">
+        {goals.map(goal => (
+          <div
+            key={goal.id}
+            className="p-6 bg-[#151524] rounded-xl border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-medium text-white">{goal.title}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(goal.status)}`}>
+                    {goal.status}
+                  </span>
+                </div>
+                <p className="text-gray-400 mt-2">{goal.description}</p>
+                <div className="flex items-center gap-2 mt-4 text-sm text-gray-500">
+                  <Calendar className="w-4 h-4" />
+                  <span>Due: {new Date(goal.dueDate).toLocaleDateString()}</span>
                 </div>
               </div>
-            ))}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleEditGoal(goal.id, {})}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <Pencil className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleDeleteGoal(goal.id)}
+                  className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Progress</span>
+                <span className="text-sm text-white">{goal.progress}%</span>
+              </div>
+              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#6c47ff] transition-all duration-300"
+                  style={{ width: `${goal.progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2">
+                <button
+                  onClick={() => handleUpdateProgress(goal.id, Math.max(0, goal.progress - 10))}
+                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                  -10%
+                </button>
+                <button
+                  onClick={() => handleUpdateProgress(goal.id, Math.min(100, goal.progress + 10))}
+                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                  +10%
+                </button>
+              </div>
+            </div>
           </div>
-        )}
+        ))}
       </div>
 
-      {isNewGoalModalOpen && (
-        <NewGoalModal
-          onClose={() => setIsNewGoalModalOpen(false)}
-          onSubmit={handleAddGoal}
-        />
-      )}
+      {/* New Goal Modal */}
+      <NewGoalModal
+        isOpen={isNewGoalModalOpen}
+        onClose={() => setIsNewGoalModalOpen(false)}
+        onSubmit={handleAddGoal}
+      />
     </div>
   )
 }

@@ -9,7 +9,7 @@ import {
   MessageSquare,
   Calendar,
   CheckCircle,
-  AlertCircle,
+  AlertTriangle,
   Clock,
   BarChart3,
   Send,
@@ -66,7 +66,7 @@ export function SelfRating() {
       case 'Completed':
         return <CheckCircle className="w-4 h-4" />
       case 'Overdue':
-        return <AlertCircle className="w-4 h-4" />
+        return <AlertTriangle className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
     }

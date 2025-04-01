@@ -17,7 +17,7 @@ import {
   TrendingUp,
   Clock,
   CheckCircle2,
-  AlertCircle,
+  AlertTriangle,
   Loader2,
   RefreshCw,
   Save,
@@ -252,7 +252,7 @@ export function Reports() {
       case 'Processing':
         return <Clock className="w-4 h-4" />
       case 'Failed':
-        return <AlertCircle className="w-4 h-4" />
+        return <AlertTriangle className="w-4 h-4" />
       default:
         return <FileText className="w-4 h-4" />
     }
@@ -297,7 +297,7 @@ export function Reports() {
         <div className={`fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg ${
           showSuccessToast ? 'bg-green-500' : 'bg-red-500'
         } text-white flex items-center gap-2 z-50`}>
-          {showSuccessToast ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {showSuccessToast ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           {toastMessage}
         </div>
       )}

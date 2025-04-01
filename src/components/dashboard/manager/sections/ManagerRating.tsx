@@ -7,7 +7,7 @@ import {
   MessageSquare,
   Calendar,
   CheckCircle,
-  AlertCircle,
+  AlertTriangle,
   Clock,
   BarChart3,
   Send,
@@ -82,7 +82,7 @@ export function ManagerRating() {
       case 'Completed':
         return <CheckCircle className="w-4 h-4" />
       case 'Overdue':
-        return <AlertCircle className="w-4 h-4" />
+        return <AlertTriangle className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
     }
@@ -414,7 +414,7 @@ export function ManagerRating() {
       {filteredGoals.length === 0 && (
         <div className="text-center py-12">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1E293B] mb-4">
-            <AlertCircle className="w-6 h-6 text-gray-400" />
+            <AlertTriangle className="w-6 h-6 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-white">No goals found</h3>
           <p className="text-gray-400 mt-1">Try adjusting your search or filter criteria</p>

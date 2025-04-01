@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { EmployeeNavigationItems } from '../ui/EmployeeNavigationItems'
-import { LogOut, Menu } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 interface SidebarProps {
   selectedTab: string
@@ -18,7 +17,6 @@ export function EmployeeSidebar({
   isMobileMenuOpen,
   setIsMobileMenuOpen
 }: SidebarProps) {
-  const [isOpen, setIsOpen] = useState(true)
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -32,8 +30,6 @@ export function EmployeeSidebar({
 
   return (
     <div className="flex h-full flex-col">
-      
-
       <nav className="mt-4 flex-1">
         <EmployeeNavigationItems
           selectedTab={selectedTab}
@@ -48,7 +44,7 @@ export function EmployeeSidebar({
           className="flex w-full items-center gap-2 rounded-lg p-2 text-red-600 hover:bg-red-50"
         >
           <LogOut className="h-5 w-5" />
-          {isOpen && <span>Logout</span>}
+          <span>Logout</span>
         </button>
       </div>
     </div>

@@ -6,13 +6,13 @@ import {
   ThumbsUp, 
   ThumbsDown, 
   Search, 
-  Filter, 
+  SlidersHorizontal, 
   ChevronRight, 
   Tag,
   Send,
   Clock,
   CheckCircle,
-  AlertCircle,
+  AlertTriangle,
   Star,
   User,
   Plus,
@@ -285,8 +285,8 @@ export function Feedback() {
 
       {filteredFeedbacks.length === 0 && (
         <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1E293B] mb-4">
-            <Filter className="w-6 h-6 text-gray-400" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-800 mb-4">
+            <SlidersHorizontal className="w-6 h-6 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-white">No feedback found</h3>
           <p className="text-gray-400 mt-1">Try adjusting your search or filter criteria</p>

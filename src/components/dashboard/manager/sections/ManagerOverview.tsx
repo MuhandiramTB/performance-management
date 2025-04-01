@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, Target, TrendingUp, Clock, BarChart2 } from 'lucide-react'
+import { Users, Target, TrendingUp, Clock, BarChart } from 'lucide-react'
 import { useState } from 'react'
 
 interface TeamMetric {
@@ -52,7 +52,7 @@ export function ManagerOverview() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-white">Team Performance</h2>
           <div className="flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-gray-400" />
+            <BarChart className="w-5 h-5 text-gray-400" />
             <span className="text-sm text-gray-400">Last 30 days</span>
           </div>
         </div>

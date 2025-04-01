@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Star, BarChart2, Search, Filter, ChevronRight, Clock } from 'lucide-react'
+import { Calendar, Star, BarChart, Search, Filter, ChevronRight, Clock } from 'lucide-react'
 
 interface Review {
   id: number
@@ -40,7 +40,7 @@ export function PerformanceReviews() {
       case 'Annual':
         return <Calendar className="w-4 h-4" />
       case 'Quarterly':
-        return <BarChart2 className="w-4 h-4" />
+        return <BarChart className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
     }

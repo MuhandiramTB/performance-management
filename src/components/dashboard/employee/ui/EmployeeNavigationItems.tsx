@@ -1,6 +1,6 @@
 'use client'
 
-import { HomeIcon, TargetIcon, StarIcon, MessageSquareIcon, BarChartIcon, CheckSquare } from 'lucide-react'
+import { Home, Target, Star, MessageSquare, BarChart } from 'lucide-react'
 
 interface NavigationItemsProps {
   selectedTab: string
@@ -9,11 +9,11 @@ interface NavigationItemsProps {
 }
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
-  { id: 'goal-setting', label: 'Goal Setting', icon: TargetIcon },
-  { id: 'self-rating', label: 'Self Rating', icon: StarIcon },
-  { id: 'feedback', label: 'Feedback', icon: MessageSquareIcon },
-  { id: 'reports', label: 'Reports', icon: BarChartIcon }
+  { id: 'dashboard', label: 'Dashboard', icon: Home },
+  { id: 'goal-setting', label: 'Goal Setting', icon: Target },
+  { id: 'self-rating', label: 'Self Rating', icon: Star },
+  { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+  { id: 'reports', label: 'Reports', icon: BarChart }
 ]
 
 export function EmployeeNavigationItems({
