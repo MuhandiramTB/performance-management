@@ -13,8 +13,7 @@ export function ManagerNavigationItems({ selectedTab, setSelectedTab, setIsMobil
     { id: 'goal-approvals', label: 'Goal Approvals', icon: Star },
     { id: 'performance-reviews', label: 'Performance Reviews', icon: FileText },
     { id: 'manager-rating', label: 'Manager Rating', icon: Award },
-    { id: 'team-feedback', label: 'Team Feedback', icon: MessageSquare },
-    { id: 'reports', label: 'Reports', icon: BarChart },
+    { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   ]
 
   return (

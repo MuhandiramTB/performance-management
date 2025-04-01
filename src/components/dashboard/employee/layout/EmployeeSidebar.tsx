@@ -127,7 +127,7 @@ export function EmployeeSidebar({
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-20 bg-white/5 backdrop-blur-xl lg:hidden"
+          className="fixed inset-0 z-20 bg-[#1a1a2e] backdrop-blur-xl lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}

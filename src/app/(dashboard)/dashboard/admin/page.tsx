@@ -196,43 +196,45 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-4rem)] pt-16">
+      <div className="flex pt-16">
         {/* Desktop Sidebar */}
-          <div className="h-full flex flex-col">
-            <Sidebar
-              selectedTab={selectedTab}
-              setSelectedTab={setSelectedTab}
-              isMobileMenuOpen={false}
-              setIsMobileMenuOpen={() => {}}
-            />
-          </div>
+        <div className="hidden lg:block lg:w-64 fixed inset-y-16 left-0 bg-[#151524] border-r border-gray-800/50">
+          <Sidebar
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
+        </div>
 
         {/* Mobile Sidebar */}
         <div className={`
-          fixed inset-y-0 left-0 z-50 w-64
-          transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-          transition-transform duration-300 ease-in-out
-          bg-[#151524] border-r border-gray-800/50 rounded-r-2xl shadow-xl
-          overflow-hidden backdrop-blur-lg
-          lg:hidden
+          lg:hidden fixed inset-y-16 left-0 z-50 w-64 bg-[#151524] border-r border-gray-800/50
+          transform transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
-          
-          <div className="h-full flex flex-col">
-            <Sidebar
-              selectedTab={selectedTab}
-              setSelectedTab={setSelectedTab}
-              isMobileMenuOpen={isMobileMenuOpen}
-              setIsMobileMenuOpen={setIsMobileMenuOpen}
-            />
-          </div>
+          <Sidebar
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
         </div>
 
+        {/* Mobile Sidebar Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 lg:ml-64">
           <div className="p-4 lg:p-8">
             <div className="max-w-7xl mx-auto">
               {/* Main Content Area */}
-              <div className="backdrop-blur-lg bg-[#151524]/40 rounded-2xl p-8 border border-gray-800/50 shadow-xl">
+              <div className="backdrop-blur-lg bg-[#151524]/40 rounded-2xl p-4 lg:p-8 border border-gray-800/50 shadow-xl">
                 {!isClient ? (
                   <div className="flex items-center justify-center h-64">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>

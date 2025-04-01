@@ -4,50 +4,85 @@ import {
   Settings,
   Shield,
   BarChart2,
-  Building2,
-  History,
-  LogOut
+  FileText,
+  Bell,
+  LogOut,
+  X
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface AdminSidebarProps {
   selectedTab: string
   setSelectedTab: (tab: string) => void
+  isMobileMenuOpen: boolean
+  setIsMobileMenuOpen: (isOpen: boolean) => void
 }
 
 export function AdminSidebar({
   selectedTab,
   setSelectedTab,
+  isMobileMenuOpen,
+  setIsMobileMenuOpen
 }: AdminSidebarProps) {
   const { signOut } = useAuth()
 
   const menuItems = [
-    
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      bgColor: 'bg-blue-500/10',
+      textColor: 'text-blue-400'
+    },
+    {
+      id: 'user-management',
+      label: 'User Management',
+      icon: Users,
+      bgColor: 'bg-[#6c47ff]/10',
+      textColor: 'text-[#6c47ff]'
+    },
     {
       id: 'system-settings',
       label: 'System Settings',
       icon: Settings,
+      bgColor: 'bg-green-500/10',
+      textColor: 'text-green-400'
+    },
+    {
+      id: 'roles-permissions',
+      label: 'Roles & Permissions',
+      icon: Shield,
+      bgColor: 'bg-yellow-500/10',
+      textColor: 'text-yellow-400'
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: BarChart2,
       bgColor: 'bg-pink-500/10',
       textColor: 'text-pink-400'
     },
     {
-      id: 'audit-logs',
-      label: 'Audit Logs',
-      icon: History,
-      bgColor: 'bg-orange-500/10',
-      textColor: 'text-orange-400'
-    },
-    {
       id: 'reports',
-      label: 'Analytics',
-      icon: BarChart2,
+      label: 'Reports',
+      icon: FileText,
       bgColor: 'bg-purple-500/10',
       textColor: 'text-purple-400'
+    },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: Bell,
+      bgColor: 'bg-indigo-500/10',
+      textColor: 'text-indigo-400'
     }
   ]
 
   const handleTabChange = (tabId: string) => {
     setSelectedTab(tabId)
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false)
+    }
   }
 
   return (
@@ -59,8 +94,8 @@ export function AdminSidebar({
             onClick={() => handleTabChange(item.id)}
             className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-200
               ${selectedTab === item.id
-                ? 'text-white bg-[#1a1a2e]'
-                : 'text-gray-400 hover:text-white hover:bg-[#1a1a2e]'
+                ? 'text-white bg-white/10'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
               }
             `}
           >
@@ -72,10 +107,10 @@ export function AdminSidebar({
         ))}
       </div>
 
-      <div className="p-4 border-t border-gray-800/50">
+      <div className="p-4 border-t border-white/10">
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-[#1a1a2e] rounded-lg transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
         >
           <div className="p-2 rounded-lg bg-red-500/10">
             <LogOut className="w-4 h-4 text-red-400" />

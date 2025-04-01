@@ -1,336 +1,333 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Pencil, Trash2, Plus, Calendar, Target, CheckCircle2, AlertTriangle, RefreshCw, ArrowLeft, Search, Filter } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { NewGoalModal } from '../modals/NewGoalModal'
+import { useState } from 'react'
+import { 
+  Target, 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  Calendar,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Search,
+  Filter,
+  ChevronDown
+} from 'lucide-react'
+import { Goal, GoalStatus } from '@/models/performance'
 
-interface Goal {
-  id: number
+interface GoalFormData {
   title: string
   description: string
   dueDate: string
-  status: 'Not Started' | 'In Progress' | 'Completed' | 'Overdue'
-  progress: number
+  priority: 'high' | 'medium' | 'low'
 }
 
 export function GoalSetting() {
-  const [isNewGoalModalOpen, setIsNewGoalModalOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [showGoalForm, setShowGoalForm] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [goals, setGoals] = useState<Goal[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<Goal['status'] | 'all'>('all')
-  const router = useRouter()
+  const [formData, setFormData] = useState<GoalFormData>({
+    title: '',
+    description: '',
+    dueDate: '',
+    priority: 'medium'
+  })
 
-  useEffect(() => {
-    fetchGoals()
-  }, [])
+  const getStatusIcon = (status: GoalStatus) => {
+    switch (status) {
+      case GoalStatus.APPROVED:
+        return <CheckCircle className="w-5 h-5 text-green-500" />
+      case GoalStatus.REJECTED:
+        return <AlertTriangle className="w-5 h-5 text-red-500" />
+      default:
+        return <Clock className="w-5 h-5 text-blue-500" />
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-500/10 text-red-500'
+      case 'medium':
+        return 'bg-yellow-500/10 text-yellow-500'
+      case 'low':
+        return 'bg-green-500/10 text-green-500'
+      default:
+        return 'bg-gray-500/10 text-gray-500'
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      const newGoal: Goal = {
+        goalId: Date.now().toString(),
+        employeeId: 'current-user-id', // Replace with actual user ID
+        description: formData.description,
+        status: GoalStatus.PENDING,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+
+      if (editingGoal) {
+        setGoals(goals.map(goal => 
+          goal.goalId === editingGoal.goalId ? newGoal : goal
+        ))
+      } else {
+        setGoals([...goals, newGoal])
+      }
+
+      setShowGoalForm(false)
+      setEditingGoal(null)
+      setFormData({
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: 'medium'
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEdit = (goal: Goal) => {
+    setEditingGoal(goal)
+    setFormData({
+      title: goal.description.split('\n')[0] || '',
+      description: goal.description,
+      dueDate: new Date().toISOString().split('T')[0],
+      priority: 'medium'
+    })
+    setShowGoalForm(true)
+  }
+
+  const handleDelete = async (goalId: string) => {
+    if (!confirm('Are you sure you want to delete this goal?')) return
+
+    setIsSubmitting(true)
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setGoals(goals.filter(goal => goal.goalId !== goalId))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const filteredGoals = goals.filter(goal => {
-    const matchesSearch = goal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         goal.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || goal.status === statusFilter
+    const matchesSearch = goal.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = selectedStatus === 'all' || goal.status === selectedStatus
     return matchesSearch && matchesStatus
   })
 
-  const fetchGoals = async () => {
-    try {
-      const response = await fetch('/api/goals')
-      if (!response.ok) throw new Error('Failed to fetch goals')
-      const data = await response.json()
-      setGoals(data)
-    } catch (error) {
-      console.error('Error fetching goals:', error)
-      setError('Failed to load goals')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDeleteGoal = async (goalId: number) => {
-    try {
-      const response = await fetch(`/api/goals?id=${goalId}`, {
-        method: 'DELETE'
-      })
-      if (!response.ok) throw new Error('Failed to delete goal')
-      
-      setGoals(goals.filter(goal => goal.id !== goalId))
-    } catch (error) {
-      console.error('Error deleting goal:', error)
-      setError('Failed to delete goal')
-    }
-  }
-
-  const handleEditGoal = async (goalId: number, updatedData: Partial<Goal>) => {
-    try {
-      const response = await fetch('/api/goals', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: goalId, ...updatedData })
-      })
-      if (!response.ok) throw new Error('Failed to update goal')
-      
-      const updatedGoal = await response.json()
-      setGoals(goals.map(goal => 
-        goal.id === goalId ? updatedGoal : goal
-      ))
-    } catch (error) {
-      console.error('Error updating goal:', error)
-      setError('Failed to update goal')
-    }
-  }
-
-  const handleAddGoal = async (newGoal: Omit<Goal, 'id'>) => {
-    try {
-      const response = await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newGoal)
-      })
-      if (!response.ok) throw new Error('Failed to create goal')
-      
-      const createdGoal = await response.json()
-      setGoals([...goals, createdGoal])
-      setIsNewGoalModalOpen(false)
-    } catch (error) {
-      console.error('Error creating goal:', error)
-      setError('Failed to create goal')
-    }
-  }
-
-  const handleUpdateProgress = async (goalId: number, progress: number) => {
-    const status = progress === 100 ? 'Completed' : progress > 0 ? 'In Progress' : 'Not Started'
-    await handleEditGoal(goalId, { progress, status })
-  }
-
-  const getStatusColor = (status: Goal['status']) => {
-    switch (status) {
-      case 'Not Started':
-        return 'bg-gray-500/20 text-gray-400'
-      case 'In Progress':
-        return 'bg-yellow-500/20 text-yellow-400'
-      case 'Completed':
-        return 'bg-green-500/20 text-green-400'
-      case 'Overdue':
-        return 'bg-red-500/20 text-red-400'
-      default:
-        return 'bg-gray-500/20 text-gray-400'
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
-          <p className="text-gray-400">Loading your goals...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-          <p className="text-red-500">{error}</p>
-          <button
-            onClick={fetchGoals}
-            className="mt-4 px-4 py-2 text-sm text-white bg-red-500/20 rounded-lg hover:bg-red-500/30 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard/employee')}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#6c47ff]/10 rounded-lg">
+            <Target className="w-5 h-5 text-[#6c47ff]" />
+          </div>
           <div>
-            <h1 className="text-2xl font-semibold text-white">Performance Goals</h1>
-            <p className="text-gray-400 mt-1">Set and track your performance objectives</p>
+            <h1 className="text-2xl font-semibold text-white">Goal Setting</h1>
+            <p className="text-gray-400 mt-1">Define and manage your performance goals</p>
           </div>
         </div>
-        <button
-          onClick={() => setIsNewGoalModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-[#6c47ff] rounded-xl hover:bg-[#5a3dd8] transition-all duration-200 hover:shadow-lg hover:shadow-[#6c47ff]/20"
-        >
-          <Plus className="w-5 h-5" />
-          New Goal
-        </button>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search goals..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1a1a2e] border border-gray-800/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-500" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search goals..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] w-full sm:w-64"
+            />
+          </div>
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as Goal['status'] | 'all')}
-            className="px-4 py-2.5 bg-[#1a1a2e] border border-gray-800/50 rounded-xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
           >
             <option value="all">All Status</option>
-            <option value="Not Started">Not Started</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Overdue">Overdue</option>
+            <option value={GoalStatus.PENDING}>Pending</option>
+            <option value={GoalStatus.APPROVED}>Approved</option>
+            <option value={GoalStatus.REJECTED}>Rejected</option>
           </select>
-        </div>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-6 bg-[#151524] rounded-xl border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200 group">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gray-500/20 group-hover:bg-[#6c47ff]/20 transition-colors">
-              <Target className="w-6 h-6 text-gray-400 group-hover:text-[#6c47ff]" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-white">Total Goals</h3>
-              <p className="text-3xl font-semibold text-white mt-1">{goals.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 bg-[#151524] rounded-xl border border-gray-800/50 hover:border-yellow-500/30 transition-all duration-200 group">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-yellow-500/20 group-hover:bg-yellow-500/30 transition-colors">
-              <div className="w-6 h-6 text-yellow-400">🔄</div>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-white">In Progress</h3>
-              <p className="text-3xl font-semibold text-white mt-1">
-                {goals.filter(g => g.status === 'In Progress').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 bg-[#151524] rounded-xl border border-gray-800/50 hover:border-green-500/30 transition-all duration-200 group">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
-              <CheckCircle2 className="w-6 h-6 text-green-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-white">Completed</h3>
-              <p className="text-3xl font-semibold text-white mt-1">
-                {goals.filter(g => g.status === 'Completed').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 bg-[#151524] rounded-xl border border-gray-800/50 hover:border-red-500/30 transition-all duration-200 group">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-red-500/20 group-hover:bg-red-500/30 transition-colors">
-              <AlertTriangle className="w-6 h-6 text-red-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-white">Overdue</h3>
-              <p className="text-3xl font-semibold text-white mt-1">
-                {goals.filter(g => g.status === 'Overdue').length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Goals List */}
-      <div className="space-y-4">
-        {filteredGoals.map(goal => (
-          <div
-            key={goal.id}
-            className="p-6 bg-[#151524] rounded-xl border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200 group"
+          <button
+            onClick={() => setShowGoalForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#6c47ff] text-white rounded-lg hover:bg-[#5a3ad9] transition-colors"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-medium text-white group-hover:text-[#6c47ff] transition-colors">
-                    {goal.title}
-                  </h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(goal.status)}`}>
-                    {goal.status}
-                  </span>
-                </div>
-                <p className="text-gray-400 mt-2">{goal.description}</p>
-                <div className="flex items-center gap-2 mt-4 text-sm text-gray-500">
-                  <Calendar className="w-4 h-4" />
-                  <span>Due: {new Date(goal.dueDate).toLocaleDateString()}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleEditGoal(goal.id, {})}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200"
-                >
-                  <Pencil className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleDeleteGoal(goal.id)}
-                  className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
+            <Plus className="w-4 h-4" />
+            New Goal
+          </button>
+        </div>
+      </div>
+
+      {/* Goal Form */}
+      {showGoalForm && (
+        <div className="bg-[#151524] rounded-lg border border-gray-800/50 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white">
+              {editingGoal ? 'Edit Goal' : 'Create New Goal'}
+            </h2>
+            <button
+              onClick={() => {
+                setShowGoalForm(false)
+                setEditingGoal(null)
+                setFormData({
+                  title: '',
+                  description: '',
+                  dueDate: '',
+                  priority: 'medium'
+                })
+              }}
+              className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Goal Title
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
+                placeholder="Enter goal title"
+                required
+              />
             </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">Progress</span>
-                <span className="text-sm text-white">{goal.progress}%</span>
-              </div>
-              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#6c47ff] transition-all duration-300"
-                  style={{ width: `${goal.progress}%` }}
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] h-32"
+                placeholder="Enter goal description"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
+                  required
                 />
               </div>
-              <div className="flex justify-between mt-2">
-                <button
-                  onClick={() => handleUpdateProgress(goal.id, Math.max(0, goal.progress - 10))}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'high' | 'medium' | 'low' })}
+                  className="w-full px-4 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
                 >
-                  -10%
-                </button>
-                <button
-                  onClick={() => handleUpdateProgress(goal.id, Math.min(100, goal.progress + 10))}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  +10%
-                </button>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGoalForm(false)
+                  setEditingGoal(null)
+                  setFormData({
+                    title: '',
+                    description: '',
+                    dueDate: '',
+                    priority: 'medium'
+                  })
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-[#6c47ff] text-white rounded-lg hover:bg-[#5a3ad9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Submitting...' : editingGoal ? 'Update Goal' : 'Create Goal'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Goals List */}
+      <div className="grid gap-4">
+        {filteredGoals.map((goal) => (
+          <div
+            key={goal.goalId}
+            className="bg-[#151524] rounded-lg border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200"
+          >
+            <div className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-white">
+                    {goal.description.split('\n')[0]}
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {goal.description.split('\n').slice(1).join('\n')}
+                  </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="flex items-center gap-1 text-sm text-gray-400">
+                      <Calendar className="w-4 h-4" />
+                      Due {new Date(goal.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor('medium')}`}>
+                      Medium Priority
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(goal.status)}
+                  {goal.status === GoalStatus.PENDING && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEdit(goal)}
+                        className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(goal.goalId)}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-gray-800"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
-
-      {/* New Goal Modal */}
-      <NewGoalModal
-        isOpen={isNewGoalModalOpen}
-        onClose={() => setIsNewGoalModalOpen(false)}
-        onSubmit={handleAddGoal}
-      />
     </div>
   )
 }

@@ -17,6 +17,7 @@ import {
   Search,
   Filter
 } from 'lucide-react'
+import { Goal, Rating, GoalStatus } from '@/models/performance'
 
 interface Employee {
   id: number
@@ -26,33 +27,53 @@ interface Employee {
   department: string
 }
 
-interface Goal {
-  id: number
-  title: string
-  description: string
-  status: 'In Progress' | 'Completed' | 'Overdue'
-  dueDate: string
-  progress: number
-  category: string
-  employee: Employee
-  selfRating?: number
-  selfComments?: string
-  managerRating?: number
-  managerComments?: string
-  submittedAt: string
+interface RatingFormData {
+  rating: number
+  feedback: string
 }
+
+// Sample data for demonstration
+const sampleGoals: Goal[] = [
+  {
+    goalId: '1',
+    employeeId: '101',
+    description: "Improve Team Productivity\nIncrease team output by 25% through process optimization and better resource allocation",
+    status: GoalStatus.PENDING,
+    createdAt: new Date('2024-03-15'),
+    updatedAt: new Date('2024-03-15')
+  },
+  {
+    goalId: '2',
+    employeeId: '102',
+    description: "Customer Satisfaction Enhancement\nAchieve 90% customer satisfaction rating through improved service delivery",
+    status: GoalStatus.APPROVED,
+    createdAt: new Date('2024-03-10'),
+    updatedAt: new Date('2024-03-10')
+  },
+  {
+    goalId: '3',
+    employeeId: '103',
+    description: "Project Delivery Timeline\nComplete project milestones within agreed timeline and budget constraints",
+    status: GoalStatus.REJECTED,
+    createdAt: new Date('2024-03-05'),
+    updatedAt: new Date('2024-03-05')
+  }
+]
 
 export function ManagerRating() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
-  const [ratings, setRatings] = useState<Record<number, number>>({})
-  const [comments, setComments] = useState<Record<number, string>>({})
+  const [ratings, setRatings] = useState<Record<string, Rating>>({})
+  const [formData, setFormData] = useState<RatingFormData>({
+    rating: 0,
+    feedback: ''
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Initialize goals as empty array
-  const [goals, setGoals] = useState<Goal[]>([])
+  // Initialize goals with sample data
+  const [goals, setGoals] = useState<Goal[]>(sampleGoals)
 
   const ratingOptions = [
     { value: 1, label: '1 - Needs Improvement', description: 'Performance below expectations' },
@@ -62,61 +83,76 @@ export function ManagerRating() {
     { value: 5, label: '5 - Outstanding Performance', description: 'Exceptional achievement' }
   ]
 
-  const getStatusColor = (status: Goal['status']) => {
+  const getStatusColor = (status: GoalStatus) => {
     switch (status) {
-      case 'In Progress':
+      case GoalStatus.PENDING:
         return 'bg-yellow-500/10 text-yellow-400'
-      case 'Completed':
+      case GoalStatus.APPROVED:
         return 'bg-green-500/10 text-green-400'
-      case 'Overdue':
+      case GoalStatus.REJECTED:
         return 'bg-red-500/10 text-red-400'
       default:
         return 'bg-gray-500/10 text-gray-400'
     }
   }
 
-  const getStatusIcon = (status: Goal['status']) => {
+  const getStatusIcon = (status: GoalStatus) => {
     switch (status) {
-      case 'In Progress':
+      case GoalStatus.PENDING:
         return <Clock className="w-4 h-4" />
-      case 'Completed':
+      case GoalStatus.APPROVED:
         return <CheckCircle className="w-4 h-4" />
-      case 'Overdue':
+      case GoalStatus.REJECTED:
         return <AlertTriangle className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
     }
   }
 
-  const handleSubmitRating = async (goalId: number) => {
-    const rating = ratings[goalId]
-    const comment = comments[goalId]
-    if (!rating) return
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedGoal) return
 
     setIsSubmitting(true)
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
-      setGoals(goals.map(goal => 
-        goal.id === goalId 
-          ? { ...goal, managerRating: rating, managerComments: comment }
-          : goal
-      ))
+      
+      // Create new rating
+      const newRating: Rating = {
+        ratingId: Date.now().toString(),
+        goalId: selectedGoal.goalId,
+        employeeRating: 0, // This will be set by the employee
+        managerRating: formData.rating,
+        feedback: formData.feedback,
+        submittedAt: new Date(),
+        updatedAt: new Date()
+      }
+
+      // Update ratings
+      setRatings(prev => ({
+        ...prev,
+        [selectedGoal.goalId]: newRating
+      }))
+
       setSelectedGoal(null)
+      setFormData({ rating: 0, feedback: '' })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const filteredGoals = goals.filter(goal => {
-    const matchesSearch = goal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      goal.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      goal.employee.name.toLowerCase().includes(searchTerm.toLowerCase())
-    
+    const matchesSearch = goal.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = selectedStatus === 'all' || goal.status === selectedStatus
-    const matchesEmployee = !selectedEmployee || goal.employee.id === selectedEmployee
+    return matchesSearch && matchesStatus
+  })
 
-    return matchesSearch && matchesStatus && matchesEmployee
+  // Add sorting functionality
+  const sortedGoals = [...filteredGoals].sort((a, b) => {
+    // Sort by status (Rejected first, then Pending, then Approved)
+    const statusOrder = { [GoalStatus.REJECTED]: 0, [GoalStatus.PENDING]: 1, [GoalStatus.APPROVED]: 2 }
+    return statusOrder[a.status] - statusOrder[b.status]
   })
 
   if (selectedGoal) {
@@ -145,65 +181,24 @@ export function ManagerRating() {
           <div className="p-8 border-b border-gray-800/50">
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selectedGoal.employee.avatar}
-                    alt={selectedGoal.employee.name}
-                    className="w-12 h-12 rounded-full"
-                  />
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">{selectedGoal.employee.name}</h2>
-                    <p className="text-gray-400">{selectedGoal.employee.role} • {selectedGoal.employee.department}</p>
-                  </div>
-                </div>
-                <h3 className="text-2xl font-semibold text-white mb-3">{selectedGoal.title}</h3>
-                <p className="text-gray-400 text-lg mb-6">{selectedGoal.description}</p>
+                <h3 className="text-2xl font-semibold text-white mb-3">
+                  {selectedGoal.description.split('\n')[0]}
+                </h3>
+                <p className="text-gray-400 text-lg mb-6">
+                  {selectedGoal.description.split('\n').slice(1).join('\n')}
+                </p>
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1 text-sm text-gray-400">
                     <Calendar className="w-4 h-4" />
-                    {selectedGoal.dueDate}
+                    Due {selectedGoal.createdAt.toLocaleDateString()}
                   </span>
                   <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(selectedGoal.status)} flex items-center gap-1`}>
                     {getStatusIcon(selectedGoal.status)}
                     {selectedGoal.status}
                   </span>
-                  <span className="px-3 py-1 text-sm rounded-full bg-[#6c47ff]/10 text-[#6c47ff]">
-                    {selectedGoal.category}
-                  </span>
                 </div>
               </div>
             </div>
-
-            {/* Progress Bar */}
-            <div className="mt-6 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Progress</span>
-                <span className="text-white font-medium">{selectedGoal.progress}%</span>
-              </div>
-              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    selectedGoal.status === 'Completed' ? 'bg-green-500' :
-                    selectedGoal.status === 'In Progress' ? 'bg-yellow-500' :
-                    'bg-red-500'
-                  }`}
-                  style={{ width: `${selectedGoal.progress}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Self Assessment */}
-            {selectedGoal.selfRating && (
-              <div className="mt-6 p-4 bg-[#1E293B] rounded-lg">
-                <h4 className="text-sm font-medium text-gray-400 mb-2">Self Assessment</h4>
-                <div className="flex items-center gap-2 mb-2">
-                  <ThumbsUp className="w-4 h-4 text-green-400" />
-                  <span className="text-white">Rating: {selectedGoal.selfRating}/5</span>
-                </div>
-                <p className="text-gray-400 text-sm">{selectedGoal.selfComments}</p>
-              </div>
-            )}
           </div>
 
           {/* Rating Form */}
@@ -215,11 +210,8 @@ export function ManagerRating() {
               </label>
               <div className="relative max-w-md">
                 <select
-                  value={ratings[selectedGoal.id] || ''}
-                  onChange={(e) => setRatings({
-                    ...ratings,
-                    [selectedGoal.id]: Number(e.target.value)
-                  })}
+                  value={formData.rating}
+                  onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
                   className="w-full px-4 py-3 bg-[#1E293B] border border-gray-800 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-[#6c47ff] text-lg"
                 >
                   <option value="">Select rating</option>
@@ -231,9 +223,9 @@ export function ManagerRating() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
-              {ratings[selectedGoal.id] && (
+              {formData.rating && (
                 <p className="mt-2 text-sm text-gray-400">
-                  {ratingOptions.find(opt => opt.value === ratings[selectedGoal.id])?.description}
+                  {ratingOptions.find(opt => opt.value === formData.rating)?.description}
                 </p>
               )}
             </div>
@@ -244,20 +236,27 @@ export function ManagerRating() {
                 Manager Comments
               </label>
               <textarea
-                value={comments[selectedGoal.id] || ''}
-                onChange={(e) => setComments({
-                  ...comments,
-                  [selectedGoal.id]: e.target.value
-                })}
+                value={formData.feedback}
+                onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
                 placeholder="Provide detailed feedback on employee performance..."
                 className="w-full px-4 py-3 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] min-h-[200px] text-lg"
               />
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end gap-4 pt-6">
               <button
-                onClick={() => handleSubmitRating(selectedGoal.id)}
-                disabled={isSubmitting || !ratings[selectedGoal.id]}
+                type="button"
+                onClick={() => {
+                  setSelectedGoal(null)
+                  setFormData({ rating: 0, feedback: '' })
+                }}
+                className="px-6 py-3 text-base font-medium text-gray-400 hover:text-white bg-[#1E293B] rounded-lg hover:bg-[#2d3748] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || formData.rating === 0}
                 className="flex items-center gap-2 px-6 py-3 text-base font-medium text-white bg-[#6c47ff] rounded-lg hover:bg-[#5a3dd8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
@@ -312,48 +311,30 @@ export function ManagerRating() {
             className="px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
           >
             <option value="all">All Status</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Overdue">Overdue</option>
-          </select>
-          <select
-            value={selectedEmployee || ''}
-            onChange={(e) => setSelectedEmployee(e.target.value ? Number(e.target.value) : null)}
-            className="px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
-          >
-            <option value="">All Employees</option>
-            {[...new Set(goals.map(goal => goal.employee.id))].map(id => {
-              const employee = goals.find(g => g.employee.id === id)?.employee
-              return employee ? (
-                <option key={id} value={id}>{employee.name}</option>
-              ) : null
-            })}
+            <option value={GoalStatus.PENDING}>Pending</option>
+            <option value={GoalStatus.APPROVED}>Approved</option>
+            <option value={GoalStatus.REJECTED}>Rejected</option>
           </select>
         </div>
       </div>
 
       {/* Goals List */}
       <div className="grid gap-6">
-        {filteredGoals.map((goal) => (
+        {sortedGoals.map((goal) => (
           <div
-            key={goal.id}
-            className="bg-[#151524] rounded-lg overflow-hidden border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200 cursor-pointer"
+            key={goal.goalId}
+            className="bg-[#151524] rounded-lg overflow-hidden border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200 cursor-pointer group"
             onClick={() => setSelectedGoal(goal)}
           >
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={goal.employee.avatar}
-                    alt={goal.employee.name}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div>
-                    <h2 className="text-xl font-semibold text-white mb-1">{goal.title}</h2>
-                    <p className="text-gray-400 text-sm mb-2">{goal.employee.name} • {goal.employee.role}</p>
-                    <p className="text-gray-400 line-clamp-2">{goal.description}</p>
-                  </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-white mb-1">
+                    {goal.description.split('\n')[0]}
+                  </h2>
+                  <p className="text-gray-400 line-clamp-2">
+                    {goal.description.split('\n').slice(1).join('\n')}
+                  </p>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(goal.status)} flex items-center gap-1`}>
                   {getStatusIcon(goal.status)}
@@ -361,57 +342,41 @@ export function ManagerRating() {
                 </span>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-sm text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {goal.dueDate}
-                  </span>
-                  <span className="px-2 py-1 rounded-full bg-[#6c47ff]/10 text-[#6c47ff] text-xs">
-                    {goal.category}
-                  </span>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Progress</span>
-                    <span className="text-white font-medium">{goal.progress}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        goal.status === 'Completed' ? 'bg-green-500' :
-                        goal.status === 'In Progress' ? 'bg-yellow-500' :
-                        'bg-red-500'
-                      }`}
-                      style={{ width: `${goal.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Self Rating */}
-                {goal.selfRating && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-[#1E293B] rounded-lg">
-                    <ThumbsUp className="w-4 h-4 text-green-400" />
-                    <span className="text-sm text-white">Self Rating: {goal.selfRating}/5</span>
-                  </div>
-                )}
-
-                {/* Manager Rating */}
-                {goal.managerRating && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-[#1E293B] rounded-lg">
-                    <Star className="w-4 h-4 text-yellow-400" />
-                    <span className="text-sm text-white">Manager Rating: {goal.managerRating}/5</span>
-                  </div>
-                )}
+              <div className="flex items-center gap-3 text-sm text-gray-400">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  Due {goal.createdAt.toLocaleDateString()}
+                </span>
               </div>
+
+              {/* Manager Rating */}
+              {ratings[goal.goalId] && (
+                <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-[#1E293B] rounded-lg">
+                  <Star className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm text-white">Manager Rating: {ratings[goal.goalId].managerRating}/5</span>
+                </div>
+              )}
+            </div>
+
+            {/* Add a "Rate Now" button */}
+            <div className="p-4 border-t border-gray-800/50 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedGoal(goal)
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#6c47ff] text-white rounded-lg hover:bg-[#5a3dd8] transition-colors"
+              >
+                <Star className="w-4 h-4" />
+                Rate Performance
+              </button>
             </div>
           </div>
         ))}
       </div>
 
-      {filteredGoals.length === 0 && (
+      {/* Empty state */}
+      {sortedGoals.length === 0 && (
         <div className="text-center py-12">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1E293B] mb-4">
             <AlertTriangle className="w-6 h-6 text-gray-400" />

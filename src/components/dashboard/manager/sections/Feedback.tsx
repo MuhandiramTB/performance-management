@@ -1,32 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  MessageSquare, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle,
-  Star,
-  Send,
-  ThumbsUp,
-  ThumbsDown,
-  Tag,
-  Filter,
-  Search,
-  ChevronRight,
-  Plus,
-  X,
-  RefreshCw
-} from 'lucide-react'
-import { NewFeedbackModal } from '../modals/NewFeedbackModal'
-
-interface FeedbackStats {
-  icon: React.ElementType
-  label: string
-  value: number
-  bgColor: string
-  iconColor: string
-}
+import { useState } from 'react'
+import { Search, Filter, Plus, Send, ThumbsUp, MessageSquare, Clock, AlertCircle, Star, RefreshCw } from 'lucide-react'
+import { NewFeedbackModal } from '@/components/dashboard/manager/components/NewFeedbackModal'
 
 interface FeedbackItem {
   id: number
@@ -38,11 +14,19 @@ interface FeedbackItem {
   message: string
   timestamp: string
   status: 'Pending Response' | 'Responded'
-  response?: string
   type: 'Praise' | 'Improvement' | 'General'
   rating?: number
   tags: string[]
   isPrivate: boolean
+  response?: string
+}
+
+interface FeedbackStats {
+  icon: any
+  label: string
+  value: number
+  bgColor: string
+  iconColor: string
 }
 
 // Add sample data
@@ -104,66 +88,27 @@ const sampleStats: FeedbackStats[] = [
 ]
 
 export function Feedback() {
-  const [feedbackResponse, setFeedbackResponse] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedTag, setSelectedTag] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [isNewFeedbackModalOpen, setIsNewFeedbackModalOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [newFeedback, setNewFeedback] = useState({
+    to: '',
+    type: 'General',
+    message: '',
+    tags: [] as string[],
+    isPrivate: false,
+    rating: 0
+  })
+
+  // Initialize with sample data
   const [stats, setStats] = useState<FeedbackStats[]>(sampleStats)
   const [recentFeedback, setRecentFeedback] = useState<FeedbackItem[]>(sampleFeedback)
-  const [allTags, setAllTags] = useState<string[]>([])
-
-  useEffect(() => {
-    fetchFeedback()
-  }, [])
-
-  const fetchFeedback = async () => {
-    try {
-      const response = await fetch('/api/feedback')
-      if (!response.ok) throw new Error('Failed to fetch feedback')
-      const data = await response.json()
-      setRecentFeedback(data)
-      
-      // Update stats
-      setStats([
-        {
-          icon: ThumbsUp,
-          label: 'Praise',
-          value: data.filter((f: FeedbackItem) => f.type === 'Praise').length,
-          bgColor: 'bg-green-500/10',
-          iconColor: 'text-green-500'
-        },
-        {
-          icon: ThumbsDown,
-          label: 'Improvement',
-          value: data.filter((f: FeedbackItem) => f.type === 'Improvement').length,
-          bgColor: 'bg-yellow-500/10',
-          iconColor: 'text-yellow-500'
-        },
-        {
-          icon: MessageSquare,
-          label: 'General',
-          value: data.filter((f: FeedbackItem) => f.type === 'General').length,
-          bgColor: 'bg-blue-500/10',
-          iconColor: 'text-blue-500'
-        }
-      ])
-
-      // Update tags
-      const tags = new Set<string>()
-      data.forEach((f: FeedbackItem) => {
-        f.tags.forEach(tag => tags.add(tag))
-      })
-      setAllTags(Array.from(tags))
-    } catch (error) {
-      console.error('Error fetching feedback:', error)
-      setError('Failed to load feedback')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const [feedbackResponse, setFeedbackResponse] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmitResponse = async (feedbackId: number) => {
     if (!feedbackResponse.trim()) {
@@ -248,33 +193,15 @@ export function Feedback() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-          <p className="text-red-500">{error}</p>
-        </div>
-      </div>
-    )
-  }
-
   const filteredFeedback = recentFeedback.filter(feedback => {
     const matchesSearch = feedback.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
       feedback.author.name.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesType = selectedType === 'all' || feedback.type === selectedType
     const matchesTag = selectedTag === 'all' || feedback.tags.includes(selectedTag)
+    const matchesStatus = selectedStatus === 'all' || feedback.status === selectedStatus
 
-    return matchesSearch && matchesType && matchesTag
+    return matchesSearch && matchesType && matchesTag && matchesStatus
   })
 
   return (
@@ -283,14 +210,14 @@ export function Feedback() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-white">Feedback</h1>
-          <p className="text-gray-400 mt-1">View and respond to feedback from your manager</p>
+          <p className="text-gray-400 mt-1">Provide and manage feedback for your team members</p>
         </div>
         <button
           onClick={() => setIsNewFeedbackModalOpen(true)}
           className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-[#6c47ff] rounded-lg hover:bg-[#5a3dd8] transition-all duration-200 hover:shadow-lg hover:shadow-[#6c47ff]/20"
         >
           <Plus className="w-5 h-5" />
-          Request Feedback
+          New Feedback
         </button>
       </div>
 
@@ -342,9 +269,18 @@ export function Feedback() {
             className="px-4 py-2 bg-[#151524] border border-gray-800/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent"
           >
             <option value="all">All Tags</option>
-            {allTags.map(tag => (
+            {['Leadership', 'Technical Skills', 'Documentation', 'Teamwork'].map(tag => (
               <option key={tag} value={tag}>{tag}</option>
             ))}
+          </select>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="px-4 py-2 bg-[#151524] border border-gray-800/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent"
+          >
+            <option value="all">All Status</option>
+            <option value="Pending Response">Pending Response</option>
+            <option value="Responded">Responded</option>
           </select>
         </div>
       </div>
@@ -441,7 +377,7 @@ export function Feedback() {
 
             {feedback.response && (
               <div className="mt-4 pt-4 border-t border-gray-800/50">
-                <h4 className="text-sm font-medium text-gray-400 mb-2">Your Response</h4>
+                <h4 className="text-sm font-medium text-gray-400 mb-2">Response</h4>
                 <p className="text-white">{feedback.response}</p>
               </div>
             )}
@@ -465,7 +401,7 @@ export function Feedback() {
           isOpen={isNewFeedbackModalOpen}
           onClose={() => setIsNewFeedbackModalOpen(false)}
           onSubmit={handleAddFeedback}
-          availableTags={allTags}
+          availableTags={['Leadership', 'Technical Skills', 'Documentation', 'Teamwork']}
         />
       )}
     </div>

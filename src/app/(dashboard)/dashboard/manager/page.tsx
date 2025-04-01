@@ -4,15 +4,12 @@ import { useState, useRef, useEffect } from 'react'
 import { ManagerSidebar } from '@/components/dashboard/manager/layout/ManagerSidebar'
 import { GoalApprovals } from '@/components/dashboard/manager/sections/GoalApprovals'
 import { PerformanceReviews } from '@/components/dashboard/manager/sections/PerformanceReviews'
-import { Feedback } from '@/components/dashboard/manager/sections/TeamFeedback'
-import { Reports } from '@/components/dashboard/manager/sections/Reports'
-import { ReviewSchedule } from '@/components/dashboard/manager/sections/ReviewSchedule'
-import { TeamAchievements } from '@/components/dashboard/manager/sections/TeamAchievements'
-import { Projects } from '@/components/dashboard/manager/sections/Projects'
+import { Feedback } from '@/components/dashboard/manager/sections/Feedback'
 import { ManagerRating } from '@/components/dashboard/manager/sections/ManagerRating'
 import { Menu, X, Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+
 
 export default function ManagerDashboard() {
   const [selectedTab, setSelectedTab] = useState('dashboard')
@@ -62,21 +59,17 @@ export default function ManagerDashboard() {
 
   const renderContent = () => {
     switch (selectedTab) {
-      
       case 'goal-approvals':
         return <GoalApprovals />
+      case 'manager-ratings':
+        return <ManagerRating />
       case 'performance-reviews':
         return <PerformanceReviews />
-      case 'team-feedback':
+      case 'feedback':
         return <Feedback />
-      case 'reports':
-        return <Reports />
-    
-      
-      case 'manager-rating':
-        return <ManagerRating />
+     
       default:
-        return  <GoalApprovals />
+        return <GoalApprovals />
     }
   }
 
@@ -201,45 +194,45 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-4rem)] pt-16">
+      <div className="flex pt-16 h-full">
         {/* Desktop Sidebar */}
-          <div className="h-full flex flex-col">
-            <ManagerSidebar
-              selectedTab={selectedTab}
-              setSelectedTab={setSelectedTab}
-              isMobileMenuOpen={false}
-              setIsMobileMenuOpen={() => {}}
-            />
-          </div>
+        <div className="hidden lg:block lg:w-64 fixed inset-y-16 left-0 bg-[#151524] border-r border-gray-800/50">
+          <ManagerSidebar
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
+        </div>
 
         {/* Mobile Sidebar */}
         <div className={`
-          fixed inset-y-0 left-0 z-50 w-64
-          transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-          transition-transform duration-300 ease-in-out
-          bg-[#151524] border-r border-gray-800/50 rounded-r-2xl shadow-xl
-          overflow-hidden backdrop-blur-lg
-          lg:hidden
+          lg:hidden fixed inset-y-16 left-0 z-50 w-64 bg-[#151524] border-r border-gray-800/50
+          transform transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
-          
-          
-          {/* Sidebar Content */}
-          <div className="h-full flex flex-col">
-            <ManagerSidebar
-              selectedTab={selectedTab}
-              setSelectedTab={setSelectedTab}
-              isMobileMenuOpen={isMobileMenuOpen}
-              setIsMobileMenuOpen={setIsMobileMenuOpen}
-            />
-          </div>
+          <ManagerSidebar
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
         </div>
 
+        {/* Mobile Sidebar Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 lg:ml-64 overflow-y-auto">
           <div className="p-4 lg:p-8">
             <div className="max-w-7xl mx-auto">
               {/* Main Content Area */}
-              <div className="backdrop-blur-lg bg-[#151524]/40 rounded-2xl p-8 border border-gray-800/50 shadow-xl">
+              <div className="backdrop-blur-lg bg-[#151524]/40 rounded-2xl p-4 lg:p-8 border border-gray-800/50 shadow-xl">
                 {renderContent()}
               </div>
             </div>
