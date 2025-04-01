@@ -76,7 +76,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-[#0a0a14] to-[#1a1a2e]">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-[#0a0a14] to-[#1a1a2e]">
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-40 backdrop-blur-lg bg-[#151524]/40 border-b border-gray-800/50">
         <div className="flex items-center justify-between px-4 lg:px-8 h-16">
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="flex pt-16">
+      <div className="flex flex-1 pt-16">
         {/* Desktop Sidebar */}
         <div className="hidden lg:block lg:w-64 fixed inset-y-16 left-0 bg-[#151524] border-r border-gray-800/50">
           <Sidebar
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 lg:ml-64">
+        <div className="flex-1 lg:ml-64 overflow-y-auto">
           <div className="p-4 lg:p-8">
             <div className="max-w-7xl mx-auto">
               {/* Main Content Area */}

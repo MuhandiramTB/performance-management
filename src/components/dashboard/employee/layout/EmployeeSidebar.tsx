@@ -7,7 +7,8 @@ import {
   MessageSquare, 
   BarChart2,
   LogOut,
-  X
+  X,
+  Award
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -47,6 +48,13 @@ export function EmployeeSidebar({
       icon: Star,
       bgColor: 'bg-yellow-500/10',
       textColor: 'text-yellow-400'
+    },
+    {
+      id: 'performance-review',
+      label: 'Performance Review',
+      icon: Award,
+      bgColor: 'bg-indigo-500/10',
+      textColor: 'text-indigo-400'
     },
     {
       id: 'feedback',

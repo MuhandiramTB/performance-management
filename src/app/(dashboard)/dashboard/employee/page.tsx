@@ -7,6 +7,7 @@ import { GoalSetting } from '@/components/dashboard/employee/sections/GoalSettin
 import { SelfRating } from '@/components/dashboard/employee/sections/SelfRating'
 import { Feedback } from '@/components/dashboard/employee/sections/Feedback'
 import { Reports } from '@/components/dashboard/employee/sections/Reports'
+import { PerformanceReview } from '@/components/dashboard/employee/sections/PerformanceReview'
 import { Menu, X, Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -69,6 +70,8 @@ export default function EmployeeDashboard() {
         return <Feedback />
       case 'reports':
         return <Reports />
+      case 'performance-review':
+        return <PerformanceReview />
       default:
         return <EmployeeOverview />
     }
