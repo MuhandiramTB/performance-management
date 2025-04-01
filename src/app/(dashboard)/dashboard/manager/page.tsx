@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { ManagerSidebar } from '@/components/dashboard/manager/layout/ManagerSidebar'
-import { ManagerOverview } from '@/components/dashboard/manager/sections/ManagerOverview'
-import { TeamManagement } from '@/components/dashboard/manager/sections/TeamManagement'
 import { GoalApprovals } from '@/components/dashboard/manager/sections/GoalApprovals'
 import { PerformanceReviews } from '@/components/dashboard/manager/sections/PerformanceReviews'
 import { Feedback } from '@/components/dashboard/manager/sections/TeamFeedback'
@@ -64,8 +62,7 @@ export default function ManagerDashboard() {
 
   const renderContent = () => {
     switch (selectedTab) {
-      case 'dashboard':
-        return <ManagerOverview />
+      
       case 'goal-approvals':
         return <GoalApprovals />
       case 'performance-reviews':
@@ -79,7 +76,7 @@ export default function ManagerDashboard() {
       case 'manager-rating':
         return <ManagerRating />
       default:
-        return <ManagerOverview />
+        return  <GoalApprovals />
     }
   }
 

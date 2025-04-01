@@ -16,8 +16,10 @@ import {
   Calendar,
   User,
   Target,
-  BarChart3
+  BarChart3,
+  ArrowLeft
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface Goal {
   id: number
@@ -44,6 +46,7 @@ interface Comment {
 }
 
 export function GoalApprovals() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
@@ -148,6 +151,12 @@ export function GoalApprovals() {
       {/* Header Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/dashboard/manager')}
+            className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <div className="p-2 bg-[#6c47ff]/10 rounded-lg">
             <Target className="w-5 h-5 text-[#6c47ff]" />
           </div>

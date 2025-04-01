@@ -7,7 +7,7 @@ import { GoalSetting } from '@/components/dashboard/employee/sections/GoalSettin
 import { SelfRating } from '@/components/dashboard/employee/sections/SelfRating'
 import { Feedback } from '@/components/dashboard/employee/sections/Feedback'
 import { Reports } from '@/components/dashboard/employee/sections/Reports'
-import { ArrowLeft, Menu, X, Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { Menu, X, Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -92,7 +92,9 @@ export default function EmployeeDashboard() {
           </button>
 
           {/* Title */}
-          <span className="text-lg font-semibold text-white">Employee Portal</span>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold text-white">Employee Portal</span>
+          </div>
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
@@ -120,7 +122,7 @@ export default function EmployeeDashboard() {
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className="flex items-start space-x-3 p-3 rounded-lg bg-[#1a1a2e]"
+                        className="flex items-start space-x-3 p-3 rounded-lg bg-[#1a1a2e] hover:bg-[#1E293B] transition-colors cursor-pointer"
                       >
                         <div className={`w-2 h-2 rounded-full mt-2 ${
                           notification.type === 'warning' ? 'bg-yellow-500' :
@@ -144,8 +146,8 @@ export default function EmployeeDashboard() {
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center space-x-2 p-2 text-gray-400 hover:text-white transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <User className="w-5 h-5 text-blue-400" />
+                <div className="w-8 h-8 rounded-full bg-[#6c47ff]/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-[#6c47ff]" />
                 </div>
                 <span className="hidden md:block text-sm font-medium">{user?.email}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
@@ -155,8 +157,8 @@ export default function EmployeeDashboard() {
               {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-[#151524] rounded-xl shadow-xl border border-gray-800/50 p-4">
                   <div className="flex items-center space-x-3 mb-4 pb-4 border-b border-gray-800/50">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-400" />
+                    <div className="w-10 h-10 rounded-full bg-[#6c47ff]/20 flex items-center justify-center">
+                      <User className="w-6 h-6 text-[#6c47ff]" />
                     </div>
                     <div>
                       <h3 className="text-sm font-medium text-white">{user?.email}</h3>
@@ -182,7 +184,7 @@ export default function EmployeeDashboard() {
                       className="w-full flex items-center space-x-3 p-2 text-sm text-gray-400 hover:text-white hover:bg-[#1a1a2e] rounded-lg transition-colors"
                     >
                       <LogOut className="w-5 h-5" />
-                      <span>Sign Out</span>
+                      <span>Logout</span>
                     </button>
                   </div>
                 </div>
@@ -193,92 +195,47 @@ export default function EmployeeDashboard() {
       </div>
 
       <div className="flex pt-16">
-        {/* Sidebar - Only visible on mobile */}
-        <div className={`
-          fixed  inset-y-17 left-2 z-50 w-64
-          transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-          transition-transform duration-300 ease-in-out
-          bg-[#151524] border-r border-gray-800/50 rounded-r-2xl shadow-xl
-          overflow-hidden backdrop-blur-lg
-        `}>
-          {/* Close Button */}
-
-          
-          {/* Sidebar Content */}
-          <div className="h-full flex flex-col">
-            <EmployeeSidebar
-              selectedTab={selectedTab}
-              setSelectedTab={setSelectedTab}
-              isMobileMenuOpen={isMobileMenuOpen}
-              setIsMobileMenuOpen={setIsMobileMenuOpen}
-            />
-          </div>
-          
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block lg:w-64 fixed inset-y-16 left-0 bg-[#151524] border-r border-gray-800/50">
+          <EmployeeSidebar
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
         </div>
 
+        {/* Mobile Sidebar */}
+        <div className={`
+          lg:hidden fixed inset-y-16 left-0 z-50 w-64 bg-[#151524] border-r border-gray-800/50
+          transform transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <EmployeeSidebar
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
+        </div>
+
+        {/* Mobile Sidebar Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
         {/* Main Content */}
-        <div className="flex-1 min-h-screen">
-                      {/* Quick Links */}
-                      <div className="mt-8 ml-10 mr-10">
-              <h3 className="text-xl font-semibold mb-6 flex items-center text-white">
-                <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                Quick Access
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <button
-                  onClick={() => setSelectedTab('goal-setting')}
-                  className="group p-6 rounded-xl border border-gray-800/30 hover:border-blue-500/30 
-                    transition-all duration-200 hover:scale-[1.02] backdrop-blur-lg bg-[#151524]/40 shadow-lg
-                    hover:shadow-blue-500/20"
-                >
-                  <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-200">
-                    🎯
-                  </div>
-                  <span className="text-sm font-medium text-white">Goal Setting</span>
-                </button>
-                <button
-                  onClick={() => setSelectedTab('self-rating')}
-                  className="group p-6 rounded-xl border border-gray-800/30 hover:border-yellow-500/30 
-                    transition-all duration-200 hover:scale-[1.02] backdrop-blur-lg bg-[#151524]/40 shadow-lg
-                    hover:shadow-yellow-500/20"
-                >
-                  <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-200">
-                    ⭐
-                  </div>
-                  <span className="text-sm font-medium text-white">Self Assessment</span>
-                </button>
-                <button
-                  onClick={() => setSelectedTab('feedback')}
-                  className="group p-6 rounded-xl border border-gray-800/30 hover:border-pink-500/30 
-                    transition-all duration-200 hover:scale-[1.02] backdrop-blur-lg bg-[#151524]/40 shadow-lg
-                    hover:shadow-pink-500/20"
-                >
-                  <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-200">
-                    💬
-                  </div>
-                  <span className="text-sm font-medium text-white">Feedback</span>
-                </button>
-                <button
-                  onClick={() => setSelectedTab('reports')}
-                  className="group p-6 rounded-xl border border-gray-800/30 hover:border-indigo-500/30 
-                    transition-all duration-200 hover:scale-[1.02] backdrop-blur-lg bg-[#151524]/40 shadow-lg
-                    hover:shadow-indigo-500/20"
-                >
-                  <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-200">
-                    📈
-                  </div>
-                  <span className="text-sm font-medium text-white">Performance</span>
-                </button>
-              </div>
-            </div>
+        <div className="flex-1 lg:ml-64">
           <div className="p-4 lg:p-8">
             <div className="max-w-7xl mx-auto">
               {/* Main Content Area */}
-              <div className="backdrop-blur-lg bg-[#151524]/40 rounded-2xl p-8 border border-gray-800/50 shadow-xl">
+              <div className="backdrop-blur-lg bg-[#151524]/40 rounded-2xl p-4 lg:p-8 border border-gray-800/50 shadow-xl">
                 {renderContent()}
               </div>
             </div>
-
           </div>
         </div>
       </div>

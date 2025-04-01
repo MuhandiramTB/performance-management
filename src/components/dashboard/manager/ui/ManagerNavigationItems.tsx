@@ -10,8 +10,6 @@ interface ManagerNavigationItemsProps {
 
 export function ManagerNavigationItems({ selectedTab, setSelectedTab, setIsMobileMenuOpen }: ManagerNavigationItemsProps) {
   const navigationItems = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutGrid },
-    { id: 'team-management', label: 'Team Management', icon: Users },
     { id: 'goal-approvals', label: 'Goal Approvals', icon: Star },
     { id: 'performance-reviews', label: 'Performance Reviews', icon: FileText },
     { id: 'manager-rating', label: 'Manager Rating', icon: Award },

@@ -1,18 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Target } from 'lucide-react'
+
+interface Goal {
+  title: string
+  description: string
+  dueDate: string
+  status: 'Not Started' | 'In Progress' | 'Completed' | 'Overdue'
+  progress: number
+}
 
 interface NewGoalModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (goal: {
-    title: string
-    description: string
-    dueDate: string
-    status: 'Not Started' | 'In Progress' | 'Completed' | 'Overdue'
-    progress: number
-  }) => void
+  onSubmit: (goal: Goal) => void
 }
 
 export function NewGoalModal({ isOpen, onClose, onSubmit }: NewGoalModalProps) {
@@ -39,50 +41,47 @@ export function NewGoalModal({ isOpen, onClose, onSubmit }: NewGoalModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#151524] rounded-xl p-6 w-full max-w-md border border-gray-800/50">
+      <div className="bg-[#151524] rounded-xl border border-gray-800/50 p-6 w-full max-w-md">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">Create New Goal</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-blue-400" />
+            <h2 className="text-xl font-semibold text-white">New Performance Goal</h2>
+          </div>
+          
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">
-              Title
+            <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-1">
+              Goal Title
             </label>
             <input
               type="text"
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent"
+              className="w-full px-4 py-2 bg-[#1a1a2e] border border-gray-800/50 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
               placeholder="Enter goal title"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-400 mb-1">
               Description
             </label>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent"
-              placeholder="Enter goal description"
-              rows={3}
+              className="w-full px-4 py-2 bg-[#1a1a2e] border border-gray-800/50 rounded-lg text-white focus:outline-none focus:border-blue-500/50 min-h-[100px]"
+              placeholder="Describe your goal in detail"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-300 mb-1">
+            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-400 mb-1">
               Due Date
             </label>
             <input
@@ -90,7 +89,7 @@ export function NewGoalModal({ isOpen, onClose, onSubmit }: NewGoalModalProps) {
               id="dueDate"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-4 py-2 bg-[#1a1a2e] border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent"
+              className="w-full px-4 py-2 bg-[#1a1a2e] border border-gray-800/50 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
               required
             />
           </div>
@@ -105,9 +104,9 @@ export function NewGoalModal({ isOpen, onClose, onSubmit }: NewGoalModalProps) {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-[#6c47ff] rounded-lg hover:bg-[#5a3dd8] transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#6c47ff] rounded-lg hover:bg-[#5a3dd8] transition-all duration-200"
             >
-              Create Goal
+              Submit Goal
             </button>
           </div>
         </form>
