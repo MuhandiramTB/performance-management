@@ -13,16 +13,22 @@ export interface User {
 }
 
 export const isAuthenticated = (request: NextRequest) => {
-  const token = request.cookies.get('auth-token')
-  return !!token
+  const session = request.cookies.get('session')
+  if (!session) return false
+  try {
+    const sessionData = JSON.parse(session.value)
+    return !!sessionData.user
+  } catch {
+    return false
+  }
 }
 
 export const getUserRole = (request: NextRequest): UserRole | null => {
-  const userData = request.cookies.get('user-data')
-  if (!userData) return null
+  const session = request.cookies.get('session')
+  if (!session) return null
   try {
-    const user = JSON.parse(userData.value) as User
-    return user.role
+    const sessionData = JSON.parse(session.value)
+    return sessionData.user.role
   } catch {
     return null
   }

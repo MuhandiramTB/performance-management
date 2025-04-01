@@ -45,6 +45,11 @@ export function EmployeeOverview() {
         
         if (!response.ok) {
           const errorData = await response.json()
+          if (response.status === 401) {
+            // Redirect to login page if unauthorized
+            window.location.href = '/login'
+            return
+          }
           throw new Error(errorData.error || 'Failed to fetch stats')
         }
 
@@ -62,39 +67,13 @@ export function EmployeeOverview() {
   }, [])
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
-          <p className="text-gray-600 mt-1">Your performance metrics and activities</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, index) => (
-            <div key={index} className="bg-white rounded-lg shadow p-6 animate-pulse">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-24"></div>
-                  <div className="h-8 bg-gray-200 rounded w-16"></div>
-                </div>
-                <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
+    return <div className="text-center py-4">Loading...</div>
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Overview</h2>
-          <p className="text-gray-600 mt-1">Your performance metrics and activities</p>
-        </div>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
-        </div>
+      <div className="text-center py-4 text-red-600">
+        {error}
       </div>
     )
   }

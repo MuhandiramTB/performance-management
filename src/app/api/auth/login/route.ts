@@ -66,16 +66,8 @@ export async function POST(request: Request) {
     // Set cookies
     const cookieStore = await cookies()
     
-    // Set auth token cookie
-    cookieStore.set('auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-    })
-
-    // Set user data cookie
-    cookieStore.set('user-data', JSON.stringify(userData), {
+    // Set session cookie with user data
+    cookieStore.set('session', JSON.stringify({ user: userData }), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -86,7 +78,6 @@ export async function POST(request: Request) {
     const response = NextResponse.json({
       message: 'Login successful',
       user: userData,
-      token,
     })
 
     return response
