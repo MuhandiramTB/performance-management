@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { UserRole } from '@/lib/auth'
 
+export const runtime = 'nodejs'
+
 // This is a mock database. In a real application, you would use a proper database
 const users = [
   {

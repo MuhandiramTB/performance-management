@@ -80,8 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json()
+      
+      // Wait for the session to be set
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       setUser(data.user)
-      router.push(`/${data.user.role}/dashboard`)
+      router.replace(`/dashboard/${data.user.role}`)
     } catch (error) {
       console.error('Error signing in:', error)
       setError(error instanceof Error ? error.message : 'Failed to sign in')
@@ -102,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(null)
-      router.push('/login')
+      router.replace('/login')
     } catch (error) {
       console.error('Error signing out:', error)
       setError(error instanceof Error ? error.message : 'Failed to sign out')

@@ -2,56 +2,23 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserRole } from '@/lib/auth'
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { signIn, error: authError, loading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setIsLoading(true)
-
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed')
-      }
-
-      const userRole = data.user.role as UserRole
-
-      // Redirect based on role
-      switch (userRole) {
-        case 'admin':
-          router.push('/dashboard/admin')
-          break
-        case 'manager':
-          router.push('/dashboard/manager')
-          break
-        case 'employee':
-          router.push('/dashboard/employee')
-          break
-        default:
-          setError('Invalid user role')
-      }
+      await signIn(email, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during login')
-    } finally {
-      setIsLoading(false)
+      // Error is handled by AuthContext
     }
   }
 
@@ -70,9 +37,9 @@ export default function LoginPage() {
         {/* Login Form */}
         <div className="bg-[#151524]/40 backdrop-blur-lg rounded-2xl p-8 border border-gray-800/50 shadow-xl">
           <form onSubmit={handleLogin} className="space-y-6">
-            {error && (
+            {authError && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
-                {error}
+                {authError}
               </div>
             )}
 
@@ -155,12 +122,12 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className={`w-full flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
-                isLoading ? 'opacity-75 cursor-not-allowed' : ''
+                loading ? 'opacity-75 cursor-not-allowed' : ''
               }`}
             >
-              {isLoading ? (
+              {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>

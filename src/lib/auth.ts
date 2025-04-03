@@ -32,12 +32,12 @@ declare module 'next-auth' {
 }
 
 export const isAuthenticated = (request: NextRequest) => {
-  const session = request.cookies.get('next-auth.session-token')
+  const session = request.cookies.get('session')
   return !!session
 }
 
 export const getUserRole = (request: NextRequest): UserRole | null => {
-  const session = request.cookies.get('next-auth.session-token')
+  const session = request.cookies.get('session')
   if (!session) return null
   try {
     const sessionData = JSON.parse(session.value)
