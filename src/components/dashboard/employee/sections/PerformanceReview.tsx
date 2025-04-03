@@ -53,26 +53,44 @@ const sampleGoals: Goal[] = [
   {
     goalId: '1',
     employeeId: '101',
+    employeeName: 'John Doe',
     description: "Improve Team Productivity\nIncrease team output by 25% through process optimization and better resource allocation",
     status: GoalStatus.APPROVED,
-    createdAt: new Date('2024-03-15'),
-    updatedAt: new Date('2024-03-15')
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    dueDate: new Date('2024-12-31'),
+    progress: 75,
+    category: 'Team Management',
+    tags: ['productivity', 'optimization'],
+    priority: 'high'
   },
   {
     goalId: '2',
     employeeId: '101',
-    description: "Customer Satisfaction Enhancement\nAchieve 90% customer satisfaction rating through improved service delivery",
+    employeeName: 'John Doe',
+    description: "Enhance Technical Skills\nComplete advanced training in React and TypeScript",
     status: GoalStatus.APPROVED,
-    createdAt: new Date('2024-03-10'),
-    updatedAt: new Date('2024-03-10')
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    dueDate: new Date('2024-09-30'),
+    progress: 60,
+    category: 'Professional Development',
+    tags: ['technical', 'training'],
+    priority: 'medium'
   },
   {
     goalId: '3',
     employeeId: '101',
-    description: "Project Delivery Timeline\nComplete project milestones within agreed timeline and budget constraints",
+    employeeName: 'John Doe',
+    description: "Improve Documentation\nCreate comprehensive documentation for all major features",
     status: GoalStatus.APPROVED,
-    createdAt: new Date('2024-03-05'),
-    updatedAt: new Date('2024-03-05')
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    dueDate: new Date('2024-06-30'),
+    progress: 40,
+    category: 'Documentation',
+    tags: ['documentation', 'process'],
+    priority: 'low'
   }
 ]
 

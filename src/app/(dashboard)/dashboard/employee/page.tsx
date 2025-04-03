@@ -6,7 +6,7 @@ import { EmployeeOverview } from '@/components/dashboard/employee/sections/Emplo
 import { GoalSetting } from '@/components/dashboard/employee/sections/GoalSetting'
 import { SelfRating } from '@/components/dashboard/employee/sections/SelfRating'
 import { Feedback } from '@/components/dashboard/employee/sections/Feedback'
-import { Reports } from '@/components/dashboard/employee/sections/Reports'
+import Reports from '@/components/dashboard/employee/sections/Reports'
 import { PerformanceReview } from '@/components/dashboard/employee/sections/PerformanceReview'
 import { Menu, X, Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'

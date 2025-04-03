@@ -34,6 +34,12 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
+Create a `.env` file in the root directory with the following variables:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/performance_management
+```
+
 ## Getting Started
 
 1. Clone the repository:
@@ -112,5 +118,24 @@ Password: manager123
 Employee:
 Email: employee@example.com
 Password: employee123
+
+
+## Database Management
+
+The system uses PostgreSQL running in a Docker container. To manage the database, use the PowerShell script in the `scripts` directory:
+
+```powershell
+# Start the database
+.\scripts\db.ps1 start
+
+# Stop the database
+.\scripts\db.ps1 stop
+
+# Reset the database (deletes all data)
+.\scripts\db.ps1 reset
+
+# View database logs
+.\scripts\db.ps1 logs
+```
 
 

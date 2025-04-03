@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   ChevronDown, 
   Target, 
@@ -14,120 +14,772 @@ import {
   ThumbsUp,
   Search,
   Filter,
-  Plus
+  Plus,
+  Tag,
+  FileText,
+  CheckCircle2,
+  X,
+  Edit,
+  Trash2,
+  Save,
+  Loader2,
+  Calendar as CalendarIcon,
+  Clock as ClockIcon,
+  AlertCircle,
+  CheckCircle as CheckCircleIcon,
+  Star,
+  StarHalf,
+  StarOff,
+  LayoutGrid,
+  RefreshCw
 } from 'lucide-react'
 import { Goal, GoalStatus } from '@/models/performance'
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'react-hot-toast'
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 
-interface GoalFormData {
-  description: string
-  dueDate: string
-  priority: 'low' | 'medium' | 'high'
-}
-
-// Sample data for demonstration
-const sampleGoals: Goal[] = [
+// Goal templates for quick creation
+const goalTemplates = [
   {
-    goalId: '1',
-    employeeId: '101',
-    description: "Improve Team Productivity\nIncrease team output by 25% through process optimization and better resource allocation",
-    status: GoalStatus.PENDING,
-    createdAt: new Date('2024-03-15'),
-    updatedAt: new Date('2024-03-15')
+    id: 'template-1',
+    title: 'Project Completion',
+    description: 'Complete [Project Name] by [Date] with [Specific Deliverables]',
+    category: 'Project Management'
   },
   {
-    goalId: '2',
-    employeeId: '101',
-    description: "Customer Satisfaction Enhancement\nAchieve 90% customer satisfaction rating through improved service delivery",
-    status: GoalStatus.APPROVED,
-    createdAt: new Date('2024-03-10'),
-    updatedAt: new Date('2024-03-10')
+    id: 'template-2',
+    title: 'Skill Development',
+    description: 'Master [Skill Name] by completing [Course/Certification] by [Date]',
+    category: 'Professional Development'
   },
   {
-    goalId: '3',
-    employeeId: '101',
-    description: "Project Delivery Timeline\nComplete project milestones within agreed timeline and budget constraints",
-    status: GoalStatus.REJECTED,
-    createdAt: new Date('2024-03-05'),
-    updatedAt: new Date('2024-03-05')
+    id: 'template-3',
+    title: 'Performance Improvement',
+    description: 'Improve [Metric] by [Percentage] by [Date] through [Specific Actions]',
+    category: 'Performance'
+  },
+  {
+    id: 'template-4',
+    title: 'Team Collaboration',
+    description: 'Collaborate with [Team/Department] to achieve [Specific Outcome] by [Date]',
+    category: 'Teamwork'
   }
 ]
 
+// Goal categories for organization
+const goalCategories = [
+  'Project Management',
+  'Professional Development',
+  'Performance',
+  'Teamwork',
+  'Leadership',
+  'Innovation',
+  'Customer Service',
+  'Technical Skills'
+]
+
+interface GoalFormData {
+  title: string
+  description: string
+  dueDate: string
+  priority: 'low' | 'medium' | 'high'
+  category: string
+  tags: string[]
+  progress: number
+}
+
+// Utility functions for styling
+const getStatusColor = (status: GoalStatus) => {
+  switch (status) {
+    case GoalStatus.PENDING:
+      return 'bg-yellow-500/10 text-yellow-400'
+    case GoalStatus.APPROVED:
+      return 'bg-green-500/10 text-green-400'
+    case GoalStatus.REJECTED:
+      return 'bg-red-500/10 text-red-400'
+    default:
+      return 'bg-gray-500/10 text-gray-400'
+  }
+}
+
+const getStatusIcon = (status: GoalStatus) => {
+  switch (status) {
+    case GoalStatus.PENDING:
+      return <Clock className="w-4 h-4" />
+    case GoalStatus.APPROVED:
+      return <CheckCircle className="w-4 h-4" />
+    case GoalStatus.REJECTED:
+      return <AlertTriangle className="w-4 h-4" />
+    default:
+      return <Clock className="w-4 h-4" />
+  }
+}
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'high':
+      return 'bg-red-500/10 text-red-400'
+    case 'medium':
+      return 'bg-yellow-500/10 text-yellow-400'
+    case 'low':
+      return 'bg-green-500/10 text-green-400'
+    default:
+      return 'bg-gray-500/10 text-gray-400'
+  }
+}
+
+const getPriorityIcon = (priority: string) => {
+  switch (priority) {
+    case 'high':
+      return <AlertCircle className="w-4 h-4" />
+    case 'medium':
+      return <StarHalf className="w-4 h-4" />
+    case 'low':
+      return <StarOff className="w-4 h-4" />
+    default:
+      return <Star className="w-4 h-4" />
+  }
+}
+
+const getProgressColor = (progress: number) => {
+  if (progress >= 75) return 'bg-green-500'
+  if (progress >= 50) return 'bg-blue-500'
+  if (progress >= 25) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
+
+// Component for the header section
+const GoalSettingHeader = ({ 
+  viewMode, 
+  setViewMode, 
+  setShowForm 
+}: { 
+  viewMode: 'list' | 'timeline', 
+  setViewMode: (mode: 'list' | 'timeline') => void, 
+  setShowForm: (show: boolean) => void 
+}) => (
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h2 className="text-2xl font-bold tracking-tight text-white">Goal Setting</h2>
+      <p className="text-gray-400">Set and track your performance goals</p>
+    </div>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setViewMode(viewMode === 'list' ? 'timeline' : 'list')}
+        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-800 bg-[#1E293B] text-white hover:bg-[#2d3748] h-10 px-4 py-2"
+      >
+        {viewMode === 'list' ? (
+          <>
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Timeline View
+          </>
+        ) : (
+          <>
+            <LayoutGrid className="mr-2 h-4 w-4" />
+            List View
+          </>
+        )}
+      </button>
+      <button
+        onClick={() => setShowForm(true)}
+        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#6c47ff] text-white hover:bg-[#5a3dd8] h-10 px-4 py-2"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        New Goal
+      </button>
+    </div>
+  </div>
+)
+
+// Component for the filters section
+const GoalFilters = ({ 
+  searchTerm, 
+  setSearchTerm, 
+  selectedStatus, 
+  setSelectedStatus, 
+  selectedCategory, 
+  setSelectedCategory 
+}: { 
+  searchTerm: string, 
+  setSearchTerm: (term: string) => void, 
+  selectedStatus: string, 
+  setSelectedStatus: (status: string) => void, 
+  selectedCategory: string, 
+  setSelectedCategory: (category: string) => void 
+}) => (
+  <div className="flex flex-col sm:flex-row gap-4">
+    <div className="relative flex-1">
+      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+      <input
+        type="text"
+        placeholder="Search goals..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-8 py-2 text-sm text-white placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+      />
+    </div>
+    <div className="flex gap-2">
+      <select
+        value={selectedStatus}
+        onChange={(e) => setSelectedStatus(e.target.value)}
+        className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+      >
+        <option value="all">All Statuses</option>
+        <option value={GoalStatus.PENDING}>Pending</option>
+        <option value={GoalStatus.APPROVED}>Approved</option>
+        <option value={GoalStatus.REJECTED}>Rejected</option>
+      </select>
+      <select
+        value={selectedCategory}
+        onChange={(e) => setSelectedCategory(e.target.value)}
+        className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+      >
+        <option value="all">All Categories</option>
+        {goalCategories.map(category => (
+          <option key={category} value={category}>{category}</option>
+        ))}
+      </select>
+    </div>
+  </div>
+)
+
+// Component for the goal form
+const GoalForm = ({ 
+  showForm, 
+  setShowForm, 
+  formData, 
+  setFormData, 
+  handleSubmit, 
+  isSubmitting, 
+  selectedTemplate, 
+  setSelectedTemplate, 
+  tagInput, 
+  setTagInput, 
+  handleAddTag, 
+  handleRemoveTag 
+}: { 
+  showForm: boolean, 
+  setShowForm: (show: boolean) => void, 
+  formData: GoalFormData, 
+  setFormData: (data: GoalFormData) => void, 
+  handleSubmit: (e: React.FormEvent) => void, 
+  isSubmitting: boolean, 
+  selectedTemplate: string | null, 
+  setSelectedTemplate: (id: string | null) => void, 
+  tagInput: string, 
+  setTagInput: (tag: string) => void, 
+  handleAddTag: () => void, 
+  handleRemoveTag: (tag: string) => void 
+}) => {
+  if (!showForm) return null
+
+  const handleTemplateSelect = (templateId: string) => {
+    const template = goalTemplates.find(t => t.id === templateId)
+    if (template) {
+      setFormData({
+        ...formData,
+        title: template.title,
+        description: template.description,
+        category: template.category
+      })
+      setSelectedTemplate(templateId)
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-800 bg-[#151524] text-white shadow-sm">
+      <div className="p-6 space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">Create New Goal</h3>
+          <button
+            onClick={() => setShowForm(false)}
+            className="rounded-full p-1 hover:bg-gray-800"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Goal Templates */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400">Goal Templates</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {goalTemplates.map(template => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => handleTemplateSelect(template.id)}
+                  className={cn(
+                    "flex flex-col items-start p-3 rounded-md border text-left transition-colors",
+                    selectedTemplate === template.id
+                      ? "border-[#6c47ff] bg-[#6c47ff]/10"
+                      : "border-gray-800 hover:bg-gray-800"
+                  )}
+                >
+                  <span className="font-medium">{template.title}</span>
+                  <span className="text-xs text-gray-400">{template.category}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Goal Title */}
+          <div className="space-y-2">
+            <label htmlFor="title" className="text-sm font-medium text-gray-400">Goal Title</label>
+            <input
+              id="title"
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+              placeholder="Enter a clear, concise title for your goal"
+              required
+            />
+          </div>
+          
+          {/* Goal Description */}
+          <div className="space-y-2">
+            <label htmlFor="description" className="text-sm font-medium text-gray-400">Description</label>
+            <textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="flex min-h-[120px] w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+              placeholder="Describe your goal in detail. What do you want to achieve? How will you measure success?"
+              required
+            />
+          </div>
+          
+          {/* Due Date and Priority */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="dueDate" className="text-sm font-medium text-gray-400">Due Date</label>
+              <div className="relative">
+                <input
+                  id="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+                  required
+                />
+                <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="priority" className="text-sm font-medium text-gray-400">Priority</label>
+              <select
+                id="priority"
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Category */}
+          <div className="space-y-2">
+            <label htmlFor="category" className="text-sm font-medium text-gray-400">Category</label>
+            <select
+              id="category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+              required
+            >
+              <option value="">Select a category</option>
+              {goalCategories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Tags */}
+          <div className="space-y-2">
+            <label htmlFor="tags" className="text-sm font-medium text-gray-400">Tags</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {formData.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center rounded-full border border-gray-800 bg-[#1E293B] px-2.5 py-0.5 text-xs font-semibold text-white"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag)}
+                    className="ml-1 rounded-full p-0.5 hover:bg-gray-800"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                id="tags"
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
+                placeholder="Add tags and press Enter"
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-800 bg-[#1E293B] text-white hover:bg-[#2d3748] h-10 px-4 py-2"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+          
+          {/* Progress */}
+          <div className="space-y-2">
+            <label htmlFor="progress" className="text-sm font-medium text-gray-400">Initial Progress</label>
+            <input
+              id="progress"
+              type="range"
+              min="0"
+              max="100"
+              value={formData.progress}
+              onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>0%</span>
+              <span>{formData.progress}%</span>
+              <span>100%</span>
+            </div>
+          </div>
+          
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-800 bg-[#1E293B] text-white hover:bg-[#2d3748] h-10 px-4 py-2 mr-2"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#6c47ff] text-white hover:bg-[#5a3dd8] h-10 px-4 py-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Goal
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Component for the empty state
+const EmptyState = ({ 
+  searchTerm, 
+  selectedStatus, 
+  selectedCategory, 
+  setSearchTerm, 
+  setSelectedStatus, 
+  setSelectedCategory 
+}: { 
+  searchTerm: string, 
+  selectedStatus: string, 
+  selectedCategory: string, 
+  setSearchTerm: (term: string) => void, 
+  setSelectedStatus: (status: string) => void, 
+  setSelectedCategory: (category: string) => void 
+}) => (
+  <div className="flex flex-col items-center justify-center p-8 border border-gray-800 rounded-lg bg-[#151524]">
+    <Target className="h-12 w-12 text-gray-400 mb-4" />
+    <h3 className="text-lg font-medium mb-1 text-white">No goals found</h3>
+    <p className="text-gray-400 text-center mb-4">
+      {searchTerm || selectedStatus !== 'all' || selectedCategory !== 'all'
+        ? "No goals match your current filters. Try adjusting your search criteria."
+        : "You haven't created any goals yet. Click the 'New Goal' button to get started."}
+    </p>
+    {(searchTerm || selectedStatus !== 'all' || selectedCategory !== 'all') && (
+      <button
+        onClick={() => {
+          setSearchTerm('')
+          setSelectedStatus('all')
+          setSelectedCategory('all')
+        }}
+        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-800 bg-[#1E293B] text-white hover:bg-[#2d3748] h-9 px-4 py-2"
+      >
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Clear Filters
+      </button>
+    )}
+  </div>
+)
+
+// Component for a single goal card in list view
+const GoalCard = ({ goal }: { goal: Goal }) => (
+  <div className="rounded-lg border border-gray-800 bg-[#151524] text-white shadow-sm">
+    <div className="p-6">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold leading-none tracking-tight">{goal.description.split('\n')[0]}</h3>
+            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(goal.status)}`}>
+              {getStatusIcon(goal.status)}
+              <span className="ml-1">{goal.status}</span>
+            </span>
+            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getPriorityColor(goal.priority || 'medium')}`}>
+              {getPriorityIcon(goal.priority || 'medium')}
+              <span className="ml-1">{goal.priority || 'medium'}</span>
+            </span>
+          </div>
+          <p className="text-sm text-gray-400">{goal.description.split('\n').slice(1).join('\n')}</p>
+          
+          <div className="flex flex-wrap gap-2 mt-2">
+            {goal.category && (
+              <span className="inline-flex items-center rounded-full border border-gray-800 bg-[#1E293B] px-2.5 py-0.5 text-xs font-semibold text-white">
+                {goal.category}
+              </span>
+            )}
+            {goal.tags && goal.tags.map(tag => (
+              <span
+                key={tag}
+                className="inline-flex items-center rounded-full border border-gray-800 bg-[#1E293B] px-2.5 py-0.5 text-xs font-semibold text-white"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-gray-400" />
+            <span className="text-sm text-gray-400">
+              Due: {format(new Date(goal.dueDate), 'MMM d, yyyy')}
+            </span>
+          </div>
+          
+          <div className="w-full sm:w-32">
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-gray-400">Progress</span>
+              <span className="text-gray-400">{goal.progress || 0}%</span>
+            </div>
+            <div className="w-full bg-gray-800 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full ${getProgressColor(goal.progress || 0)}`}
+                style={{ width: `${goal.progress || 0}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+// Component for a single goal card in timeline view
+const TimelineGoalCard = ({ goal }: { goal: Goal }) => (
+  <div className="relative pl-8 pb-6 last:pb-0">
+    <div className="absolute left-0 top-0 h-full w-px bg-gray-800" />
+    <div className="absolute left-0 top-0 h-4 w-4 rounded-full border-2 border-[#151524] bg-[#6c47ff]" />
+    
+    <div className="rounded-lg border border-gray-800 bg-[#1E293B] p-4">
+      <div className="flex flex-col sm:flex-row justify-between gap-2">
+        <div>
+          <h4 className="font-medium">{goal.description.split('\n')[0]}</h4>
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(goal.status)}`}>
+              {getStatusIcon(goal.status)}
+              <span className="ml-1">{goal.status}</span>
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4 text-gray-400" />
+          <span className="text-sm text-gray-400">
+            {format(new Date(goal.dueDate), 'MMM d, yyyy')}
+          </span>
+        </div>
+      </div>
+      
+      <div className="mt-3">
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-gray-400">Progress</span>
+          <span className="text-gray-400">{goal.progress || 0}%</span>
+        </div>
+        <div className="w-full bg-gray-800 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full ${getProgressColor(goal.progress || 0)}`}
+            style={{ width: `${goal.progress || 0}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+// Component for the goals list view
+const GoalsListView = ({ 
+  filteredGoals, 
+  searchTerm, 
+  selectedStatus, 
+  selectedCategory, 
+  setSearchTerm, 
+  setSelectedStatus, 
+  setSelectedCategory 
+}: { 
+  filteredGoals: Goal[], 
+  searchTerm: string, 
+  selectedStatus: string, 
+  selectedCategory: string, 
+  setSearchTerm: (term: string) => void, 
+  setSelectedStatus: (status: string) => void, 
+  setSelectedCategory: (category: string) => void 
+}) => (
+  <div className="space-y-4">
+    {filteredGoals.length === 0 ? (
+      <EmptyState 
+        searchTerm={searchTerm}
+        selectedStatus={selectedStatus}
+        selectedCategory={selectedCategory}
+        setSearchTerm={setSearchTerm}
+        setSelectedStatus={setSelectedStatus}
+        setSelectedCategory={setSelectedCategory}
+      />
+    ) : (
+      filteredGoals.map(goal => (
+        <GoalCard key={`goal-${goal.goalId}`} goal={goal} />
+      ))
+    )}
+  </div>
+)
+
+// Component for the timeline view
+const TimelineView = ({ filteredGoals }: { filteredGoals: Goal[] }) => (
+  <div className="space-y-4">
+    <div className="rounded-lg border border-gray-800 bg-[#151524] text-white shadow-sm p-6">
+      <h3 className="text-lg font-semibold mb-4">Goal Timeline</h3>
+      <div className="space-y-6">
+        {filteredGoals.map(goal => (
+          <TimelineGoalCard key={`timeline-${goal.goalId}`} goal={goal} />
+        ))}
+      </div>
+    </div>
+  </div>
+)
+
+// Main component
 export function GoalSetting() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [showForm, setShowForm] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [formData, setFormData] = useState<GoalFormData>({
+    title: '',
     description: '',
     dueDate: '',
-    priority: 'medium'
+    priority: 'medium',
+    category: '',
+    tags: [],
+    progress: 0
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list')
+  const [tagInput, setTagInput] = useState('')
+  const [goals, setGoals] = useState<Goal[]>([])
 
-  // Initialize goals with sample data
-  const [goals, setGoals] = useState<Goal[]>(sampleGoals)
+  // Fetch goals from API
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        // Replace with actual API call
+        const response = await fetch('/api/goals')
+        if (response.ok) {
+          const data = await response.json()
+          setGoals(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch goals:', error)
+      }
+    }
 
-  const getStatusColor = (status: GoalStatus) => {
-    switch (status) {
-      case GoalStatus.PENDING:
-        return 'bg-yellow-500/10 text-yellow-400'
-      case GoalStatus.APPROVED:
-        return 'bg-green-500/10 text-green-400'
-      case GoalStatus.REJECTED:
-        return 'bg-red-500/10 text-red-400'
-      default:
-        return 'bg-gray-500/10 text-gray-400'
+    fetchGoals()
+  }, [])
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tagInput.trim()]
+      })
+      setTagInput('')
     }
   }
 
-  const getStatusIcon = (status: GoalStatus) => {
-    switch (status) {
-      case GoalStatus.PENDING:
-        return <Clock className="w-4 h-4" />
-      case GoalStatus.APPROVED:
-        return <CheckCircle className="w-4 h-4" />
-      case GoalStatus.REJECTED:
-        return <AlertTriangle className="w-4 h-4" />
-      default:
-        return <Clock className="w-4 h-4" />
-    }
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-500/10 text-red-400'
-      case 'medium':
-        return 'bg-yellow-500/10 text-yellow-400'
-      case 'low':
-        return 'bg-green-500/10 text-green-400'
-      default:
-        return 'bg-gray-500/10 text-gray-400'
-    }
+  const handleRemoveTag = (tag: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(t => t !== tag)
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.description.trim() || !formData.dueDate) return
-
     setIsSubmitting(true)
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Replace with actual API call
+      const response = await fetch('/api/goals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          dueDate: new Date(formData.dueDate),
+          status: GoalStatus.PENDING,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      })
       
-      // Create new goal
-      const newGoal: Goal = {
-        goalId: Date.now().toString(),
-        employeeId: '101', // This would come from the authenticated user
-        description: formData.description,
-        status: GoalStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date()
+      if (response.ok) {
+        const newGoal = await response.json()
+        setGoals([...goals, newGoal])
+        setShowForm(false)
+        setFormData({
+          title: '',
+          description: '',
+          dueDate: '',
+          priority: 'medium',
+          category: '',
+          tags: [],
+          progress: 0
+        })
+        setSelectedTemplate(null)
       }
-
-      // Update goals
-      setGoals(prev => [...prev, newGoal])
-      setShowForm(false)
-      setFormData({ description: '', dueDate: '', priority: 'medium' })
+    } catch (error) {
+      console.error('Failed to create goal:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -136,207 +788,54 @@ export function GoalSetting() {
   const filteredGoals = goals.filter(goal => {
     const matchesSearch = goal.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = selectedStatus === 'all' || goal.status === selectedStatus
-    return matchesSearch && matchesStatus
+    const matchesCategory = selectedCategory === 'all' || goal.category === selectedCategory
+    return matchesSearch && matchesStatus && matchesCategory
   })
-
-  // Add sorting functionality
-  const sortedGoals = [...filteredGoals].sort((a, b) => {
-    // Sort by status (Rejected first, then Pending, then Approved)
-    const statusOrder = { [GoalStatus.REJECTED]: 0, [GoalStatus.PENDING]: 1, [GoalStatus.APPROVED]: 2 }
-    return statusOrder[a.status] - statusOrder[b.status]
-  })
-
-  if (showForm) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowForm(false)}
-            className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
-          >
-            <ChevronDown className="w-5 h-5 rotate-90" />
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#6c47ff]/10 rounded-lg">
-              <Target className="w-5 h-5 text-[#6c47ff]" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Set New Goal</h1>
-              <p className="text-gray-400 mt-1">Define your performance goal</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#151524] rounded-lg overflow-hidden border border-gray-800/50">
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-3">
-                <MessageSquare className="w-4 h-4" />
-                Goal Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe your goal and its objectives..."
-                className="w-full px-4 py-3 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] min-h-[200px] text-lg"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-3">
-                  <Calendar className="w-4 h-4" />
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff] text-lg"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-3">
-                  <BarChart3 className="w-4 h-4" />
-                  Priority
-                </label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                  className="w-full px-4 py-3 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff] text-lg"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-4 pt-6">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-6 py-3 text-base font-medium text-gray-400 hover:text-white bg-[#1E293B] rounded-lg hover:bg-[#2d3748] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || !formData.description.trim() || !formData.dueDate}
-                className="flex items-center gap-2 px-6 py-3 text-base font-medium text-white bg-[#6c47ff] rounded-lg hover:bg-[#5a3dd8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5" />
-                    Submit Goal
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#6c47ff]/10 rounded-lg">
-            <Target className="w-5 h-5 text-[#6c47ff]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-white">Goal Setting</h1>
-            <p className="text-gray-400 mt-1">Define and manage your performance goals</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#6c47ff] text-white rounded-lg hover:bg-[#5a3dd8] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Goal
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search goals..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
-          />
-        </div>
-        <div className="flex gap-2">
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
-          >
-            <option value="all">All Status</option>
-            <option value={GoalStatus.PENDING}>Pending</option>
-            <option value={GoalStatus.APPROVED}>Approved</option>
-            <option value={GoalStatus.REJECTED}>Rejected</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Goals List */}
-      <div className="grid gap-6">
-        {sortedGoals.map((goal) => (
-          <div
-            key={goal.goalId}
-            className="bg-[#151524] rounded-lg overflow-hidden border border-gray-800/50 hover:border-[#6c47ff]/30 transition-all duration-200"
-          >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-white mb-1">
-                    {goal.description.split('\n')[0]}
-                  </h2>
-                  <p className="text-gray-400 line-clamp-2">
-                    {goal.description.split('\n').slice(1).join('\n')}
-                  </p>
-                </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(goal.status)} flex items-center gap-1`}>
-                  {getStatusIcon(goal.status)}
-                  {goal.status}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  Due {goal.createdAt.toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty state */}
-      {sortedGoals.length === 0 && (
-        <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1E293B] mb-4">
-            <AlertTriangle className="w-6 h-6 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-medium text-white">No goals found</h3>
-          <p className="text-gray-400 mt-1">Try adjusting your search or filter criteria</p>
-        </div>
+      <GoalSettingHeader 
+        viewMode={viewMode} 
+        setViewMode={setViewMode} 
+        setShowForm={setShowForm} 
+      />
+      
+      <GoalFilters 
+        searchTerm={searchTerm} 
+        setSearchTerm={setSearchTerm} 
+        selectedStatus={selectedStatus} 
+        setSelectedStatus={setSelectedStatus} 
+        selectedCategory={selectedCategory} 
+        setSelectedCategory={setSelectedCategory} 
+      />
+      
+      <GoalForm 
+        showForm={showForm} 
+        setShowForm={setShowForm} 
+        formData={formData} 
+        setFormData={setFormData} 
+        handleSubmit={handleSubmit} 
+        isSubmitting={isSubmitting} 
+        selectedTemplate={selectedTemplate} 
+        setSelectedTemplate={setSelectedTemplate} 
+        tagInput={tagInput} 
+        setTagInput={setTagInput} 
+        handleAddTag={handleAddTag} 
+        handleRemoveTag={handleRemoveTag} 
+      />
+      
+      {viewMode === 'list' ? (
+        <GoalsListView 
+          filteredGoals={filteredGoals} 
+          searchTerm={searchTerm} 
+          selectedStatus={selectedStatus} 
+          selectedCategory={selectedCategory} 
+          setSearchTerm={setSearchTerm} 
+          setSelectedStatus={setSelectedStatus} 
+          setSelectedCategory={setSelectedCategory} 
+        />
+      ) : (
+        <TimelineView filteredGoals={filteredGoals} />
       )}
     </div>
   )

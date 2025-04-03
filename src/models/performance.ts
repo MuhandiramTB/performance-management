@@ -5,9 +5,9 @@ export enum UserRole {
 }
 
 export enum GoalStatus {
-  PENDING = 'Pending',
-  APPROVED = 'Approved',
-  REJECTED = 'Rejected'
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
 }
 
 export interface User {
@@ -20,10 +20,16 @@ export interface User {
 export interface Goal {
   goalId: string;
   employeeId: string;
+  employeeName: string;
   description: string;
   status: GoalStatus;
   createdAt: Date;
   updatedAt: Date;
+  dueDate: Date;
+  progress: number;
+  category: string;
+  tags: string[];
+  priority: 'low' | 'medium' | 'high';
 }
 
 export interface Rating {
