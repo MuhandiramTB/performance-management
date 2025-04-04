@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, Plus, Edit2, Trash2, UserPlus, X, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, Plus, Edit2, Trash2, UserPlus, X, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react'
 
 interface User {
   id: string
@@ -22,10 +22,25 @@ interface UserManagementProps {
 export function UserManagement({ users, onAddUser, onEditUser, onDeleteUser }: UserManagementProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [formData, setFormData] = useState<Partial<User>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    if (isModalOpen || isDeleteModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'auto'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'auto'
+    }
+  }, [isModalOpen, isDeleteModalOpen])
 
   const handleOpenModal = (user?: User) => {
     if (user) {
@@ -62,21 +77,38 @@ export function UserManagement({ users, onAddUser, onEditUser, onDeleteUser }: U
     }
   }
 
-  const handleDelete = async (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (userToDelete) {
       try {
-        await onDeleteUser(userId)
+        await onDeleteUser(userToDelete.id)
+        setIsDeleteModalOpen(false)
+        setUserToDelete(null)
       } catch (error) {
         console.error('Error deleting user:', error)
       }
     }
   }
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false)
+    setUserToDelete(null)
+  }
+
+  const filteredUsers = users.filter(user => {
+    if (!user || typeof user !== 'object') return false;
+    
+    const searchTermLower = searchTerm.toLowerCase();
+    const nameMatch = user.name ? user.name.toLowerCase().includes(searchTermLower) : false;
+    const emailMatch = user.email ? user.email.toLowerCase().includes(searchTermLower) : false;
+    const roleMatch = user.role ? user.role.toLowerCase().includes(searchTermLower) : false;
+    
+    return nameMatch || emailMatch || roleMatch;
+  });
 
   const getStatusColor = (status: User['status']) => {
     switch (status) {
@@ -145,7 +177,7 @@ export function UserManagement({ users, onAddUser, onEditUser, onDeleteUser }: U
                 <Edit2 className="w-5 h-5" />
               </button>
               <button
-                onClick={() => handleDelete(user.id)}
+                onClick={() => handleDeleteClick(user)}
                 className="p-2 text-gray-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-colors"
                 title="Delete User"
               >
@@ -158,122 +190,190 @@ export function UserManagement({ users, onAddUser, onEditUser, onDeleteUser }: U
 
       {/* User Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-[#151524] rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">
-                {selectedUser ? 'Edit User' : 'Add New User'}
-              </h3>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name || ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter user's name"
-                />
+        <div className="fixed inset-0 z-[9999]" aria-modal="true" role="dialog">
+          <div className="fixed inset-0 bg-black/70" aria-hidden="true" onClick={handleCloseModal} />
+          <div className="fixed left-[30%] top-[20%] w-full max-w-md mx-auto">
+            <div className="bg-[#151524] rounded-lg shadow-xl flex flex-col">
+              <div className="p-6 border-b border-gray-800">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-white">
+                    {selectedUser ? 'Edit User' : 'Add New User'}
+                  </h3>
+                  <button
+                    onClick={handleCloseModal}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.email || ''}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter user's email"
-                />
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name || ''}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter user's name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter user's email"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={formData.role || ''}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Role</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Employee">Employee</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={formData.status || ''}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as User['status'] })}
+                      className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Role
-                </label>
-                <select
-                  value={formData.role || ''}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Role</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Employee">Employee</option>
-                </select>
-              </div>
+              <div className="p-6 border-t border-gray-800">
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        Save
+                      </>
+                    )}
+                  </button>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Status
-                </label>
-                <select
-                  value={formData.status || ''}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as User['status'] })}
-                  className="w-full px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="pending">Pending</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={handleCloseModal}
-                className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
+                {/* Status Messages */}
+                {submitStatus === 'success' && (
+                  <div className="flex items-center gap-2 text-green-400 text-sm mt-4">
                     <CheckCircle className="w-4 h-4" />
-                    Save
-                  </>
+                    User saved successfully
+                  </div>
                 )}
-              </button>
+                {submitStatus === 'error' && (
+                  <div className="flex items-center gap-2 text-red-400 text-sm mt-4">
+                    <AlertCircle className="w-4 h-4" />
+                    Failed to save user. Please try again.
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Status Messages */}
-            {submitStatus === 'success' && (
-              <div className="flex items-center gap-2 text-green-400 text-sm mt-4">
-                <CheckCircle className="w-4 h-4" />
-                User saved successfully
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && userToDelete && (
+        <div className="fixed inset-0 z-[9999]" aria-modal="true" role="dialog">
+          <div className="fixed inset-0 bg-black/70" aria-hidden="true" onClick={handleDeleteCancel} />
+          <div className="fixed left-[30%] top-[30%] w-full max-w-md mx-auto">
+            <div className="bg-[#151524] rounded-lg p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                  Confirm Deletion
+                </h3>
+                <button
+                  onClick={handleDeleteCancel}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-            )}
-            {submitStatus === 'error' && (
-              <div className="flex items-center gap-2 text-red-400 text-sm mt-4">
-                <AlertCircle className="w-4 h-4" />
-                Failed to save user. Please try again.
+
+              <div className="space-y-4">
+                <p className="text-white">
+                  Are you sure you want to delete the user <span className="font-medium">{userToDelete.name}</span>?
+                </p>
+                <p className="text-gray-400 text-sm">
+                  This action cannot be undone. All associated data will be permanently removed.
+                </p>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mt-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-red-400 font-medium">Warning</p>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Deleting this user will remove their access to the system and all associated records.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete User
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
     </div>
   )
-} 
+}

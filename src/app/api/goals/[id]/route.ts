@@ -1,33 +1,42 @@
-import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { goals } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+  request: NextRequest,
+  context: { params: { id: string } }
+): Promise<Response> {
   try {
     const session = await auth()
     if (!session?.user?.id) {
       console.error('[GOALS_PATCH] Unauthorized: No session or user ID')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return Response.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
-    const { progress, status, feedback } = await req.json()
+    const { progress, status, feedback } = await request.json()
 
     // Validate the goal exists and belongs to the user
     const existingGoal = await db.query.goals.findFirst({
-      where: eq(goals.id, params.id)
+      where: eq(goals.id, context.params.id)
     })
 
     if (!existingGoal) {
-      return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
+      return Response.json(
+        { error: 'Goal not found' },
+        { status: 404 }
+      )
     }
 
     if (existingGoal.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return Response.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      )
     }
 
     // Update the goal
@@ -39,13 +48,13 @@ export async function PATCH(
         feedback: feedback ?? existingGoal.feedback,
         updatedAt: new Date()
       })
-      .where(eq(goals.id, params.id))
+      .where(eq(goals.id, context.params.id))
       .returning()
 
-    return NextResponse.json(updatedGoal[0])
+    return Response.json(updatedGoal[0])
   } catch (error) {
     console.error('[GOALS_PATCH] Error:', error)
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to update goal' },
       { status: 500 }
     )

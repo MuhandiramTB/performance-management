@@ -70,19 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Invalid credentials')
-      }
-
       const data = await response.json()
-      
-      // Wait for the session to be set
-      await new Promise(resolve => setTimeout(resolve, 100))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Invalid credentials')
+      }
       
       setUser(data.user)
       router.replace(`/dashboard/${data.user.role}`)

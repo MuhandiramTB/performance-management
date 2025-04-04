@@ -1,146 +1,157 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { goals, notifications, users } from '@/lib/db/schema'
-import { eq, and, SQL } from 'drizzle-orm'
-import type { Goal } from '@/lib/db/schema'
+import type { NextRequest } from 'next/server'
+import { db } from '@/lib/db/connection'
+import { goals, notifications } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import { isAuthenticated } from '@/lib/auth'
 
-export async function GET(req: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      console.error('[GOALS_GET] Unauthorized: No session or user ID')
+    if (!isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[GOALS_GET] User authenticated:', session.user.id)
-
-    const { searchParams } = new URL(req.url)
-    const status = searchParams.get('status') as Goal['status'] | null
-    const userId = searchParams.get('userId')
-
-    let finalQuery = eq(goals.userId, session.user.id)
-    if (userId && session.user.role === 'admin') {
-      finalQuery = eq(goals.userId, userId)
-    }
-    if (status) {
-      finalQuery = and(finalQuery, eq(goals.status, status)) as SQL<unknown>
+    const session = request.cookies.get('session')
+    if (!session) {
+      return NextResponse.json({ error: 'No session found' }, { status: 401 })
     }
 
-    console.log('[GOALS_GET] Querying database with filter:', { userId: session.user.id, status })
+    const sessionData = JSON.parse(session.value)
+    const userId = sessionData.user.id
 
-    const userGoals = await db
-      .select({
-        id: goals.id,
-        title: goals.title,
-        description: goals.description,
-        deadline: goals.deadline,
-        userId: goals.userId,
-        templateId: goals.templateId,
-        priority: goals.priority,
-        status: goals.status,
-        feedback: goals.feedback,
-        category: goals.category,
-        tags: goals.tags,
-        progress: goals.progress,
-        createdAt: goals.createdAt,
-        updatedAt: goals.updatedAt,
-        userName: users.name,
-      })
-      .from(goals)
-      .leftJoin(users, eq(goals.userId, users.id))
-      .where(finalQuery)
+    const userGoals = await db.query.goals.findMany({
+      where: eq(goals.userId, userId),
+      orderBy: (goals, { desc }) => [desc(goals.createdAt)],
+    })
 
-    console.log(`[GOALS_GET] Found ${userGoals.length} goals for user ${session.user.id}`)
     return NextResponse.json(userGoals)
   } catch (error) {
-    console.error('[GOALS_GET] Error:', error)
+    console.error('Error fetching goals:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal Server Error' }, 
+      { error: 'Failed to fetch goals' },
       { status: 500 }
     )
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    console.log('[GOALS_POST] Session:', {
-      authenticated: !!session,
-      userId: session?.user?.id,
-      role: session?.user?.role
-    })
-
-    if (!session?.user?.id) {
-      console.error('[GOALS_POST] Unauthorized: No session or user ID')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    console.log('POST /api/goals - Starting request processing')
+    
+    if (!isAuthenticated(request)) {
+      console.log('POST /api/goals - User not authenticated')
+      return NextResponse.json({ error: 'Unauthorized - Please log in again' }, { status: 401 })
     }
 
-    const body = await req.json()
-    console.log('[GOALS_POST] Request body:', body)
+    const session = request.cookies.get('session')
+    if (!session) {
+      console.log('POST /api/goals - No session cookie found')
+      return NextResponse.json({ error: 'No session found - Please log in again' }, { status: 401 })
+    }
 
-    const { title, description, deadline, priority, category, tags, progress } = body
+    let sessionData
+    try {
+      sessionData = JSON.parse(session.value)
+      console.log('POST /api/goals - Session data:', { 
+        userId: sessionData.user?.id,
+        role: sessionData.user?.role
+      })
+      
+      if (!sessionData.user || !sessionData.user.id) {
+        console.log('POST /api/goals - Invalid session data structure')
+        return NextResponse.json({ error: 'Invalid session - Please log in again' }, { status: 401 })
+      }
+    } catch (error) {
+      console.error('POST /api/goals - Error parsing session data:', error)
+      return NextResponse.json({ error: 'Invalid session format - Please log in again' }, { status: 401 })
+    }
 
-    // Validate required fields
-    if (!title || !description || !deadline) {
-      console.error('[GOALS_POST] Missing required fields:', { title, description, deadline })
-      return NextResponse.json({ error: 'Title, description and deadline are required' }, { status: 400 })
+    const userId = sessionData.user.id
+
+    const body = await request.json()
+    console.log('POST /api/goals - Request body:', body)
+    
+    const { title, description, deadline, category, priority, tags, progress } = body
+
+    if (!title || !description || !deadline || !category) {
+      console.log('POST /api/goals - Missing required fields:', { 
+        title: !!title, 
+        description: !!description, 
+        deadline: !!deadline, 
+        category: !!category 
+      })
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
     }
 
     // Validate deadline is a future date
     const deadlineDate = new Date(deadline)
-    if (deadlineDate < new Date()) {
-      console.error('[GOALS_POST] Invalid deadline:', deadline)
-      return NextResponse.json({ error: 'Deadline must be a future date' }, { status: 400 })
+    if (deadlineDate <= new Date()) {
+      console.log('POST /api/goals - Invalid deadline:', deadlineDate)
+      return NextResponse.json(
+        { error: 'Deadline must be a future date' },
+        { status: 400 }
+      )
     }
 
-    console.log('[GOALS_POST] Creating goal for user:', session.user.id)
-
-    // Create the goal
-    const goal = await db.insert(goals).values({
+    console.log('POST /api/goals - Creating goal in database')
+    
+    // Create the goal with all fields
+    const [newGoal] = await db.insert(goals).values({
+      userId,
       title,
       description,
       deadline: deadlineDate,
-      userId: session.user.id,
-      priority: priority || 0,
-      status: 'pending',
       category,
+      priority: priority || 0,
       tags: tags || [],
       progress: progress || 0,
+      status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning()
 
+    console.log('POST /api/goals - Goal created successfully:', newGoal)
+
     // Create notification for manager if user has one
-    if (session.user.managerId) {
+    if (sessionData.user.managerId) {
+      console.log('POST /api/goals - Creating notification for manager:', sessionData.user.managerId)
       await db.insert(notifications).values({
-        userId: session.user.managerId,
-        type: 'new_goal',
-        message: `New goal "${title}" created by ${session.user.name}`,
-        data: { goalId: goal[0].id },
+        userId: sessionData.user.managerId,
+        type: 'goal_created',
+        message: `New goal created: ${title}`,
         read: false,
         createdAt: new Date(),
       })
     }
 
-    return NextResponse.json(goal[0])
+    return NextResponse.json(newGoal)
   } catch (error) {
-    console.error('[GOALS_POST]', error)
+    console.error('POST /api/goals - Error creating goal:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal Error' }, 
+      { error: 'Failed to create goal' },
       { status: 500 }
     )
   }
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    if (!isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await req.json()
+    const session = request.cookies.get('session')
+    if (!session) {
+      return NextResponse.json({ error: 'No session found' }, { status: 401 })
+    }
+
+    const sessionData = JSON.parse(session.value)
+    const userId = sessionData.user.id
+
+    const body = await request.json()
     const { id, title, description, deadline, priority, status } = body
 
     if (!id) {
@@ -152,7 +163,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     }
 
-    if (goal[0].userId !== session.user.id && session.user.role !== 'admin') {
+    if (goal[0].userId !== userId && sessionData.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -171,17 +182,27 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(updatedGoal[0])
   } catch (error) {
-    console.error('[GOALS_PATCH]', error)
-    return NextResponse.json({ error: 'Internal Error' }, { status: 500 })
+    console.error('Error updating goal:', error)
+    return NextResponse.json(
+      { error: 'Failed to update goal' },
+      { status: 500 }
+    )
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    if (!isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const session = request.cookies.get('session')
+    if (!session) {
+      return NextResponse.json({ error: 'No session found' }, { status: 401 })
+    }
+
+    const sessionData = JSON.parse(session.value)
+    const userId = sessionData.user.id
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -195,15 +216,18 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     }
 
-    if (goal[0].userId !== session.user.id && session.user.role !== 'admin') {
+    if (goal[0].userId !== userId && sessionData.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     await db.delete(goals).where(eq(goals.id, id))
 
-    return NextResponse.json({ success: true }, { status: 200 })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('[GOALS_DELETE]', error)
-    return NextResponse.json({ error: 'Internal Error' }, { status: 500 })
+    console.error('Error deleting goal:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete goal' },
+      { status: 500 }
+    )
   }
 } 
