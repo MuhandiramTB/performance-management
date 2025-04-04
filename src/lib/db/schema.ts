@@ -52,6 +52,9 @@ export const goals = pgTable('goals', {
   priority: integer('priority').default(0),
   status: text('status', { enum: ['pending', 'approved', 'rejected', 'completed'] }).notNull().default('pending'),
   feedback: text('feedback'),
+  category: text('category'),
+  tags: jsonb('tags').default([]),
+  progress: integer('progress').default(0),
   createdAt: timestamp('createdat', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updatedat', { withTimezone: true }).defaultNow(),
 })

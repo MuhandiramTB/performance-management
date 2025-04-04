@@ -5,9 +5,16 @@ export enum UserRole {
 }
 
 export enum GoalStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  COMPLETED = 'completed'
+}
+
+export enum GoalPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high'
 }
 
 export interface User {
@@ -18,18 +25,22 @@ export interface User {
 }
 
 export interface Goal {
+  id: string;
   goalId: string;
-  employeeId: string;
-  employeeName: string;
+  title: string;
   description: string;
-  status: GoalStatus;
-  createdAt: Date;
-  updatedAt: Date;
-  dueDate: Date;
-  progress: number;
   category: string;
+  priority: GoalPriority;
+  status: GoalStatus;
+  dueDate: string;
   tags: string[];
-  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  progress: number;
+  feedback?: string;
+  templateId?: string;
+  userName?: string;
 }
 
 export interface Rating {

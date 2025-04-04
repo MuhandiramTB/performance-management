@@ -9,5 +9,16 @@ if (!process.env.DATABASE_URL) {
   console.warn('DATABASE_URL is not set in environment variables. Using default connection string.')
 }
 
-const client = postgres(connectionString)
+// Create a connection with error handling
+console.log('Attempting to connect to database...')
+const client = postgres(connectionString, {
+  max: 10, // Maximum number of connections
+  idle_timeout: 20, // Idle connection timeout in seconds
+  connect_timeout: 10, // Connection timeout in seconds
+  onnotice: (notice) => console.log('Database notice:', notice),
+  onparameter: (parameter) => console.log('Database parameter:', parameter),
+})
+
+console.log('Database connection established successfully')
+
 export const db = drizzle(client, { schema }) 

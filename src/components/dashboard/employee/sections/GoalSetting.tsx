@@ -33,7 +33,7 @@ import {
   LayoutGrid,
   RefreshCw
 } from 'lucide-react'
-import { Goal, GoalStatus } from '@/models/performance'
+import { Goal, GoalStatus, GoalPriority } from '@/models/performance'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -84,7 +84,7 @@ interface GoalFormData {
   title: string
   description: string
   dueDate: string
-  priority: 'low' | 'medium' | 'high'
+  priority: GoalPriority
   category: string
   tags: string[]
   progress: number
@@ -117,26 +117,26 @@ const getStatusIcon = (status: GoalStatus) => {
   }
 }
 
-const getPriorityColor = (priority: string) => {
+const getPriorityColor = (priority: GoalPriority) => {
   switch (priority) {
-    case 'high':
+    case GoalPriority.HIGH:
       return 'bg-red-500/10 text-red-400'
-    case 'medium':
+    case GoalPriority.MEDIUM:
       return 'bg-yellow-500/10 text-yellow-400'
-    case 'low':
+    case GoalPriority.LOW:
       return 'bg-green-500/10 text-green-400'
     default:
       return 'bg-gray-500/10 text-gray-400'
   }
 }
 
-const getPriorityIcon = (priority: string) => {
+const getPriorityIcon = (priority: GoalPriority) => {
   switch (priority) {
-    case 'high':
+    case GoalPriority.HIGH:
       return <AlertCircle className="w-4 h-4" />
-    case 'medium':
+    case GoalPriority.MEDIUM:
       return <StarHalf className="w-4 h-4" />
-    case 'low':
+    case GoalPriority.LOW:
       return <StarOff className="w-4 h-4" />
     default:
       return <Star className="w-4 h-4" />
@@ -374,12 +374,12 @@ const GoalForm = ({
               <select
                 id="priority"
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as GoalPriority })}
                 className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
+                <option value={GoalPriority.LOW}>Low</option>
+                <option value={GoalPriority.MEDIUM}>Medium</option>
+                <option value={GoalPriority.HIGH}>High</option>
               </select>
             </div>
           </div>
@@ -545,9 +545,9 @@ const GoalCard = ({ goal }: { goal: Goal }) => (
               {getStatusIcon(goal.status)}
               <span className="ml-1">{goal.status}</span>
             </span>
-            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getPriorityColor(goal.priority || 'medium')}`}>
-              {getPriorityIcon(goal.priority || 'medium')}
-              <span className="ml-1">{goal.priority || 'medium'}</span>
+            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getPriorityColor(goal.priority || GoalPriority.MEDIUM)}`}>
+              {getPriorityIcon(goal.priority || GoalPriority.MEDIUM)}
+              <span className="ml-1">{goal.priority || GoalPriority.MEDIUM}</span>
             </span>
           </div>
           <p className="text-sm text-gray-400">{goal.description.split('\n').slice(1).join('\n')}</p>
@@ -698,7 +698,7 @@ export function GoalSetting() {
     title: '',
     description: '',
     dueDate: '',
-    priority: 'medium',
+    priority: GoalPriority.MEDIUM,
     category: '',
     tags: [],
     progress: 0
@@ -771,7 +771,7 @@ export function GoalSetting() {
           title: '',
           description: '',
           dueDate: '',
-          priority: 'medium',
+          priority: GoalPriority.MEDIUM,
           category: '',
           tags: [],
           progress: 0
