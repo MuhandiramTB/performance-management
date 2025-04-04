@@ -33,12 +33,13 @@ import {
   LayoutGrid,
   RefreshCw
 } from 'lucide-react'
-import { Goal, GoalStatus } from '@/models/performance'
+import { Goal, GoalStatus, GoalPriority } from '@/models/performance'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-hot-toast'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
+import { useAuth } from '@/contexts/AuthContext'
 
 // Goal templates for quick creation
 const goalTemplates = [
@@ -84,10 +85,25 @@ interface GoalFormData {
   title: string
   description: string
   dueDate: string
-  priority: 'low' | 'medium' | 'high'
+  priority: GoalPriority
   category: string
   tags: string[]
   progress: number
+}
+
+interface GoalFormProps {
+  showForm: boolean
+  setShowForm: (show: boolean) => void
+  formData: GoalFormData
+  setFormData: (data: GoalFormData) => void
+  handleSubmit: (e: React.FormEvent) => void
+  isSubmitting: boolean
+  selectedTemplate: string | null
+  setSelectedTemplate: (id: string | null) => void
+  tagInput: string
+  setTagInput: (tag: string) => void
+  handleAddTag: () => void
+  handleRemoveTag: (tag: string) => void
 }
 
 // Utility functions for styling
@@ -117,26 +133,26 @@ const getStatusIcon = (status: GoalStatus) => {
   }
 }
 
-const getPriorityColor = (priority: string) => {
+const getPriorityColor = (priority: GoalPriority) => {
   switch (priority) {
-    case 'high':
+    case GoalPriority.HIGH:
       return 'bg-red-500/10 text-red-400'
-    case 'medium':
+    case GoalPriority.MEDIUM:
       return 'bg-yellow-500/10 text-yellow-400'
-    case 'low':
+    case GoalPriority.LOW:
       return 'bg-green-500/10 text-green-400'
     default:
       return 'bg-gray-500/10 text-gray-400'
   }
 }
 
-const getPriorityIcon = (priority: string) => {
+const getPriorityIcon = (priority: GoalPriority) => {
   switch (priority) {
-    case 'high':
+    case GoalPriority.HIGH:
       return <AlertCircle className="w-4 h-4" />
-    case 'medium':
+    case GoalPriority.MEDIUM:
       return <StarHalf className="w-4 h-4" />
-    case 'low':
+    case GoalPriority.LOW:
       return <StarOff className="w-4 h-4" />
     default:
       return <Star className="w-4 h-4" />
@@ -245,8 +261,7 @@ const GoalFilters = ({
   </div>
 )
 
-// Component for the goal form
-const GoalForm = ({ 
+const GoalForm: React.FC<GoalFormProps> = ({ 
   showForm, 
   setShowForm, 
   formData, 
@@ -259,20 +274,18 @@ const GoalForm = ({
   setTagInput, 
   handleAddTag, 
   handleRemoveTag 
-}: { 
-  showForm: boolean, 
-  setShowForm: (show: boolean) => void, 
-  formData: GoalFormData, 
-  setFormData: (data: GoalFormData) => void, 
-  handleSubmit: (e: React.FormEvent) => void, 
-  isSubmitting: boolean, 
-  selectedTemplate: string | null, 
-  setSelectedTemplate: (id: string | null) => void, 
-  tagInput: string, 
-  setTagInput: (tag: string) => void, 
-  handleAddTag: () => void, 
-  handleRemoveTag: (tag: string) => void 
 }) => {
+  useEffect(() => {
+    if (showForm) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showForm])
+
   if (!showForm) return null
 
   const handleTemplateSelect = (templateId: string) => {
@@ -288,206 +301,249 @@ const GoalForm = ({
     }
   }
 
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    handleSubmit(e)
+  }
+
   return (
-    <div className="rounded-lg border border-gray-800 bg-[#151524] text-white shadow-sm">
-      <div className="p-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Create New Goal</h3>
-          <button
-            onClick={() => setShowForm(false)}
-            className="rounded-full p-1 hover:bg-gray-800"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Goal Templates */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400">Goal Templates</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {goalTemplates.map(template => (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => handleTemplateSelect(template.id)}
-                  className={cn(
-                    "flex flex-col items-start p-3 rounded-md border text-left transition-colors",
-                    selectedTemplate === template.id
-                      ? "border-[#6c47ff] bg-[#6c47ff]/10"
-                      : "border-gray-800 hover:bg-gray-800"
-                  )}
-                >
-                  <span className="font-medium">{template.title}</span>
-                  <span className="text-xs text-gray-400">{template.category}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* Goal Title */}
-          <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium text-gray-400">Goal Title</label>
-            <input
-              id="title"
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
-              placeholder="Enter a clear, concise title for your goal"
-              required
-            />
-          </div>
-          
-          {/* Goal Description */}
-          <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-medium text-gray-400">Description</label>
-            <textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="flex min-h-[120px] w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
-              placeholder="Describe your goal in detail. What do you want to achieve? How will you measure success?"
-              required
-            />
-          </div>
-          
-          {/* Due Date and Priority */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="dueDate" className="text-sm font-medium text-gray-400">Due Date</label>
-              <div className="relative">
-                <input
-                  id="dueDate"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
-                  required
-                />
-                <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="priority" className="text-sm font-medium text-gray-400">Priority</label>
-              <select
-                id="priority"
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-          </div>
-          
-          {/* Category */}
-          <div className="space-y-2">
-            <label htmlFor="category" className="text-sm font-medium text-gray-400">Category</label>
-            <select
-              id="category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
-              required
-            >
-              <option value="">Select a category</option>
-              {goalCategories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Tags */}
-          <div className="space-y-2">
-            <label htmlFor="tags" className="text-sm font-medium text-gray-400">Tags</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.tags.map(tag => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center rounded-full border border-gray-800 bg-[#1E293B] px-2.5 py-0.5 text-xs font-semibold text-white"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(tag)}
-                    className="ml-1 rounded-full p-0.5 hover:bg-gray-800"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                id="tags"
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                className="flex h-10 w-full rounded-md border border-gray-800 bg-[#1E293B] px-3 py-2 text-sm text-white placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6c47ff]"
-                placeholder="Add tags and press Enter"
-              />
+    <div className="fixed inset-0 z-[9999]" aria-modal="true" role="dialog">
+      <div className="fixed inset-0 bg-black/70" aria-hidden="true" onClick={() => setShowForm(false)} />
+      <div className="fixed left-[25%] top-[15%] overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="relative w-full max-w-2xl bg-[#151524] rounded-lg shadow-xl my-4">
+            {/* Header */}
+            <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-800 bg-[#151524] p-6 rounded-t-lg">
+              <h3 className="text-xl font-semibold text-white">Create New Goal</h3>
               <button
                 type="button"
-                onClick={handleAddTag}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-800 bg-[#1E293B] text-white hover:bg-[#2d3748] h-10 px-4 py-2"
+                onClick={() => setShowForm(false)}
+                className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
               >
-                Add
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="max-h-[calc(100vh-16rem)] overflow-y-auto p-6">
+              <form onSubmit={onSubmit} className="space-y-6">
+                {/* Goal Templates */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-400">Goal Templates</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {goalTemplates.map(template => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => handleTemplateSelect(template.id)}
+                        className={cn(
+                          "flex flex-col items-start p-4 rounded-lg border text-left transition-all hover:shadow-md",
+                          selectedTemplate === template.id
+                            ? "border-[#6c47ff] bg-[#6c47ff]/10 shadow-[#6c47ff]/10"
+                            : "border-gray-800 hover:bg-gray-800/50"
+                        )}
+                      >
+                        <span className="font-medium text-white">{template.title}</span>
+                        <span className="mt-1 text-xs text-gray-400">{template.category}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                      Goal Title
+                    </label>
+                    <div className="relative">
+                      <Target className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent transition-shadow"
+                        placeholder="Enter a clear, concise title for your goal"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                      Description
+                    </label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent min-h-[120px] transition-shadow resize-y"
+                        placeholder="Describe your goal in detail..."
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                        Due Date
+                      </label>
+                      <div className="relative">
+                        <CalendarIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          type="date"
+                          value={formData.dueDate}
+                          onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                          className="w-full pl-10 pr-4 py-2.5 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent transition-shadow [&::-webkit-calendar-picker-indicator]:bg-white/10 [&::-webkit-calendar-picker-indicator]:hover:bg-white/20 [&::-webkit-calendar-picker-indicator]:rounded [&::-webkit-calendar-picker-indicator]:p-1 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                        Priority
+                      </label>
+                      <div className="relative">
+                        <AlertCircle className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <select
+                          value={formData.priority}
+                          onChange={(e) => setFormData({ ...formData, priority: e.target.value as GoalPriority })}
+                          className="w-full pl-10 pr-4 py-2.5 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent transition-shadow appearance-none cursor-pointer"
+                        >
+                          <option value={GoalPriority.LOW}>Low</option>
+                          <option value={GoalPriority.MEDIUM}>Medium</option>
+                          <option value={GoalPriority.HIGH}>High</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                      Category
+                    </label>
+                    <div className="relative">
+                      <LayoutGrid className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                      <select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent transition-shadow appearance-none cursor-pointer"
+                        required
+                      >
+                        <option value="">Select a category</option>
+                        {goalCategories.map(category => (
+                          <option key={category} value={category}>{category}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                      Tags
+                    </label>
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {formData.tags.map(tag => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center rounded-lg border border-gray-800 bg-[#1E293B] px-3 py-1 text-sm text-white"
+                          >
+                            <Tag className="mr-1.5 h-3.5 w-3.5 text-gray-400" />
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              className="ml-2 rounded-full p-0.5 hover:bg-gray-700 transition-colors"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                          <input
+                            type="text"
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                            className="w-full pl-10 pr-4 py-2.5 bg-[#1E293B] border border-gray-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6c47ff] focus:border-transparent transition-shadow"
+                            placeholder="Add tags and press Enter"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddTag}
+                          className="px-4 py-2.5 bg-[#1E293B] border border-gray-800 text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+                        >
+                          <Plus className="h-5 w-5" />
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                      Initial Progress
+                    </label>
+                    <div className="space-y-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={formData.progress}
+                        onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-gray-800 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#6c47ff] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#6c47ff] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                      />
+                      <div className="flex justify-between text-sm text-gray-400">
+                        <span>0%</span>
+                        <span>{formData.progress}%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 z-50 flex items-center justify-end gap-3 border-t border-gray-800 bg-[#151524] p-6 rounded-b-lg">
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="px-4 py-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-[#6c47ff] text-white rounded-lg hover:bg-[#5a3dd8] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-5 w-5" />
+                    Submit Goal
+                  </>
+                )}
               </button>
             </div>
           </div>
-          
-          {/* Progress */}
-          <div className="space-y-2">
-            <label htmlFor="progress" className="text-sm font-medium text-gray-400">Initial Progress</label>
-            <input
-              id="progress"
-              type="range"
-              min="0"
-              max="100"
-              value={formData.progress}
-              onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>0%</span>
-              <span>{formData.progress}%</span>
-              <span>100%</span>
-            </div>
-          </div>
-          
-          {/* Submit Button */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-gray-800 bg-[#1E293B] text-white hover:bg-[#2d3748] h-10 px-4 py-2 mr-2"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#6c47ff] text-white hover:bg-[#5a3dd8] h-10 px-4 py-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Goal
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   )
@@ -545,9 +601,9 @@ const GoalCard = ({ goal }: { goal: Goal }) => (
               {getStatusIcon(goal.status)}
               <span className="ml-1">{goal.status}</span>
             </span>
-            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getPriorityColor(goal.priority || 'medium')}`}>
-              {getPriorityIcon(goal.priority || 'medium')}
-              <span className="ml-1">{goal.priority || 'medium'}</span>
+            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${getPriorityColor(goal.priority || GoalPriority.MEDIUM)}`}>
+              {getPriorityIcon(goal.priority || GoalPriority.MEDIUM)}
+              <span className="ml-1">{goal.priority || GoalPriority.MEDIUM}</span>
             </span>
           </div>
           <p className="text-sm text-gray-400">{goal.description.split('\n').slice(1).join('\n')}</p>
@@ -689,6 +745,7 @@ const TimelineView = ({ filteredGoals }: { filteredGoals: Goal[] }) => (
 
 // Main component
 export function GoalSetting() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -698,7 +755,7 @@ export function GoalSetting() {
     title: '',
     description: '',
     dueDate: '',
-    priority: 'medium',
+    priority: GoalPriority.MEDIUM,
     category: '',
     tags: [],
     progress: 0
@@ -711,20 +768,31 @@ export function GoalSetting() {
   // Fetch goals from API
   useEffect(() => {
     const fetchGoals = async () => {
+      if (!user) return
+      
       try {
-        // Replace with actual API call
-        const response = await fetch('/api/goals')
-        if (response.ok) {
-          const data = await response.json()
-          setGoals(data)
+        const response = await fetch(`/api/goals/employee/${user.id}`, {
+          credentials: 'include'
+        })
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            window.location.href = '/login'
+            return
+          }
+          throw new Error('Failed to fetch goals')
         }
+        
+        const data = await response.json()
+        setGoals(data)
       } catch (error) {
         console.error('Failed to fetch goals:', error)
+        toast.error('Failed to load goals')
       }
     }
 
     fetchGoals()
-  }, [])
+  }, [user])
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
@@ -746,40 +814,106 @@ export function GoalSetting() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
     try {
-      // Replace with actual API call
-      const response = await fetch('/api/goals', {
+      // Validate required fields
+      if (!formData.title.trim()) {
+        toast.error('Title is required')
+        setIsSubmitting(false)
+        return
+      }
+      if (!formData.description.trim()) {
+        toast.error('Description is required')
+        setIsSubmitting(false)
+        return
+      }
+      if (!formData.dueDate) {
+        toast.error('Due date is required')
+        setIsSubmitting(false)
+        return
+      }
+      if (!formData.category) {
+        toast.error('Category is required')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Validate deadline is a future date
+      const deadlineDate = new Date(formData.dueDate)
+      if (deadlineDate <= new Date()) {
+        toast.error('Deadline must be a future date')
+        setIsSubmitting(false)
+        return
+      }
+
+      const newGoal = {
+        employeeId: user?.id,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        dueDate: deadlineDate.toISOString(),
+        priority: formData.priority,
+        category: formData.category,
+        tags: formData.tags,
+        progress: formData.progress || 0,
+        status: GoalStatus.PENDING
+      }
+      
+      const response = await fetch('/api/goals/employee', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          dueDate: new Date(formData.dueDate),
-          status: GoalStatus.PENDING,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
+        credentials: 'include',
+        body: JSON.stringify(newGoal),
       })
-      
-      if (response.ok) {
-        const newGoal = await response.json()
-        setGoals([...goals, newGoal])
-        setShowForm(false)
-        setFormData({
-          title: '',
-          description: '',
-          dueDate: '',
-          priority: 'medium',
-          category: '',
-          tags: [],
-          progress: 0
-        })
-        setSelectedTemplate(null)
+
+      // Handle authentication error
+      if (response.status === 401) {
+        window.location.href = '/login'
+        return
       }
+
+      let responseData
+      try {
+        // Try to parse the response as JSON
+        responseData = await response.json()
+      } catch (parseError) {
+        // If parsing fails, handle it based on the response status
+        if (!response.ok) {
+          throw new Error(`Failed to create goal: ${response.statusText}`)
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(responseData?.message || 'Failed to create goal')
+      }
+
+      // If we have valid response data, use it, otherwise create a default goal object
+      const createdGoal = responseData || {
+        ...newGoal,
+        goalId: Date.now().toString(), // Temporary ID if not provided by server
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      setGoals(prevGoals => [...prevGoals, createdGoal])
+      setShowForm(false)
+      
+      // Reset form data
+      setFormData({
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: GoalPriority.MEDIUM,
+        category: '',
+        tags: [],
+        progress: 0
+      })
+      setSelectedTemplate(null)
+      toast.success('Goal submitted successfully')
     } catch (error) {
-      console.error('Failed to create goal:', error)
+      console.error('Failed to submit goal:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to submit goal')
     } finally {
       setIsSubmitting(false)
     }

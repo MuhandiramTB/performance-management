@@ -5,20 +5,27 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { toast } from 'react-hot-toast'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { signIn, error: authError, loading } = useAuth()
+  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    
     try {
       await signIn(email, password)
-    } catch (err) {
-      // Error is handled by AuthContext
+    } catch (error) {
+      console.error('Login error:', error)
+      toast.error('Failed to sign in. Please check your credentials.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -36,13 +43,7 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className="bg-[#151524]/40 backdrop-blur-lg rounded-2xl p-8 border border-gray-800/50 shadow-xl">
-          <form onSubmit={handleLogin} className="space-y-6">
-            {authError && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
-                {authError}
-              </div>
-            )}
-
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-gray-300">

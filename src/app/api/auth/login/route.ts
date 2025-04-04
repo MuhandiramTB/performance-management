@@ -54,9 +54,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate token (in a real app, use proper JWT)
-    const token = 'mock-token-' + Date.now()
-
     // Create user data object (excluding sensitive information)
     const userData = {
       id: user.id,
@@ -65,21 +62,19 @@ export async function POST(request: Request) {
       role: user.role,
     }
 
-    // Set cookies
-    const cookieStore = await cookies()
-    
+    // Create the response
+    const response = NextResponse.json({
+      message: 'Login successful',
+      user: userData,
+    })
+
     // Set session cookie with user data
-    cookieStore.set('session', JSON.stringify({ user: userData }), {
+    response.cookies.set('session', JSON.stringify({ user: userData }), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 1 week
-    })
-
-    // Return success response with cookies in headers
-    const response = NextResponse.json({
-      message: 'Login successful',
-      user: userData,
+      path: '/'
     })
 
     return response
