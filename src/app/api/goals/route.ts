@@ -65,23 +65,36 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await auth()
+    console.log('[GOALS_POST] Session:', {
+      authenticated: !!session,
+      userId: session?.user?.id,
+      role: session?.user?.role
+    })
+
     if (!session?.user?.id) {
+      console.error('[GOALS_POST] Unauthorized: No session or user ID')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await req.json()
+    console.log('[GOALS_POST] Request body:', body)
+
     const { title, description, deadline, priority, category, tags, progress } = body
 
     // Validate required fields
     if (!title || !description || !deadline) {
+      console.error('[GOALS_POST] Missing required fields:', { title, description, deadline })
       return NextResponse.json({ error: 'Title, description and deadline are required' }, { status: 400 })
     }
 
     // Validate deadline is a future date
     const deadlineDate = new Date(deadline)
     if (deadlineDate < new Date()) {
+      console.error('[GOALS_POST] Invalid deadline:', deadline)
       return NextResponse.json({ error: 'Deadline must be a future date' }, { status: 400 })
     }
+
+    console.log('[GOALS_POST] Creating goal for user:', session.user.id)
 
     // Create the goal
     const goal = await db.insert(goals).values({
