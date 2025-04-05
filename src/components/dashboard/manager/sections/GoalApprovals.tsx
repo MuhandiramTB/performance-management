@@ -56,7 +56,7 @@ interface ApprovalHistory {
 
 export function GoalApprovals() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<GoalStatus | 'all'>('all')
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [goals, setGoals] = useState<Goal[]>([])
@@ -134,7 +134,11 @@ export function GoalApprovals() {
       
       setGoals(goals.map(goal => 
         goal.goalId === goalId 
-          ? { ...goal, status: GoalStatus.APPROVED, updatedAt: new Date() }
+          ? { 
+              ...goal, 
+              status: GoalStatus.APPROVED, 
+              updatedAt: new Date().toISOString()
+            } as Goal
           : goal
       ))
     } finally {
@@ -150,7 +154,11 @@ export function GoalApprovals() {
       
       setGoals(goals.map(goal => 
         goal.goalId === goalId 
-          ? { ...goal, status: GoalStatus.REJECTED, updatedAt: new Date() }
+          ? { 
+              ...goal, 
+              status: GoalStatus.REJECTED, 
+              updatedAt: new Date().toISOString()
+            } as Goal
           : goal
       ))
     } finally {
@@ -169,8 +177,8 @@ export function GoalApprovals() {
           ? { 
               ...goal, 
               status: action === 'approve' ? GoalStatus.APPROVED : GoalStatus.REJECTED,
-              updatedAt: new Date()
-            }
+              updatedAt: new Date().toISOString()
+            } as Goal
           : goal
       ))
 
@@ -429,7 +437,7 @@ export function GoalApprovals() {
             </div>
             <select
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              onChange={(e) => setSelectedStatus(e.target.value as GoalStatus | 'all')}
               className="px-3 py-2 bg-[#1E293B] border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6c47ff]"
             >
               <option value="all">All Status</option>
@@ -631,7 +639,7 @@ export function GoalApprovals() {
                       >
                         <div className="flex flex-col gap-4">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-medium text-white">{goal.employeeName}</h3>
+                            <h3 className="text-lg font-medium text-white">{goal.userName}</h3>
                             {getStatusIcon(goal.status)}
                           </div>
                           <div className="space-y-2">
@@ -654,7 +662,7 @@ export function GoalApprovals() {
                         <h4 className="text-sm font-medium text-gray-400">Progress</h4>
                         {filteredGoals.map((goal) => (
                           <div key={goal.goalId} className="flex flex-col gap-2">
-                            <span className="text-sm text-white">{goal.employeeName}</span>
+                            <span className="text-sm text-white">{goal.userName}</span>
                             <div className="flex items-center gap-2">
                               <div className="flex-1 h-2 bg-[#1E293B] rounded-full">
                                 <div
@@ -671,7 +679,7 @@ export function GoalApprovals() {
                         <h4 className="text-sm font-medium text-gray-400">Status</h4>
                         {filteredGoals.map((goal) => (
                           <div key={goal.goalId} className="flex flex-col gap-2">
-                            <span className="text-sm text-white">{goal.employeeName}</span>
+                            <span className="text-sm text-white">{goal.userName}</span>
                             <span className={`text-sm ${
                               goal.status === GoalStatus.APPROVED
                                 ? 'text-green-500'
@@ -688,7 +696,7 @@ export function GoalApprovals() {
                         <h4 className="text-sm font-medium text-gray-400">Timeline</h4>
                         {filteredGoals.map((goal) => (
                           <div key={goal.goalId} className="flex flex-col gap-2">
-                            <span className="text-sm text-white">{goal.employeeName}</span>
+                            <span className="text-sm text-white">{goal.userName}</span>
                             <span className="text-sm text-gray-400">
                               {format(new Date(goal.createdAt), 'MMM dd')} - {format(new Date(goal.dueDate), 'MMM dd')}
                             </span>
