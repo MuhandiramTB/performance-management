@@ -74,3 +74,74 @@ ALTER TABLE "accounts" ADD CONSTRAINT "accounts_userId_users_id_fk" FOREIGN KEY 
 ALTER TABLE "goals" ADD CONSTRAINT "goals_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+
+-- Modify existing enums
+ALTER TYPE goal_status ADD VALUE IF NOT EXISTS 'draft';
+ALTER TYPE goal_status ADD VALUE IF NOT EXISTS 'in_progress';
+ALTER TYPE goal_status ADD VALUE IF NOT EXISTS 'completed';
+ALTER TYPE goal_status ADD VALUE IF NOT EXISTS 'archived';
+
+ALTER TYPE rating_period ADD VALUE IF NOT EXISTS 'goal_setting';
+
+ALTER TYPE rating_scale RENAME TO rating_scale_old;
+CREATE TYPE rating_scale AS ENUM (
+	'outstanding',
+	'exceeds_expectations',
+	'meets_expectations',
+	'needs_improvement',
+	'unsatisfactory'
+);
+ALTER TABLE performance_ratings 
+	ALTER COLUMN self_rating TYPE rating_scale USING self_rating::text::rating_scale,
+	ALTER COLUMN manager_rating TYPE rating_scale USING manager_rating::text::rating_scale;
+DROP TYPE rating_scale_old;
+
+-- Add new columns to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS position varchar(255);
+
+-- Create performance_periods table
+CREATE TABLE IF NOT EXISTS performance_periods (
+	id text PRIMARY KEY,
+	name text NOT NULL,
+	start_date timestamptz NOT NULL,
+	end_date timestamptz NOT NULL,
+	goal_setting_deadline timestamptz NOT NULL,
+	self_rating_deadline timestamptz NOT NULL,
+	manager_rating_deadline timestamptz NOT NULL,
+	is_active boolean DEFAULT true,
+	createdat timestamptz DEFAULT now(),
+	updatedat timestamptz DEFAULT now()
+);
+
+-- Add new columns to goals table
+ALTER TABLE goals 
+	ADD COLUMN IF NOT EXISTS period_id text REFERENCES performance_periods(id),
+	ADD COLUMN IF NOT EXISTS weight integer DEFAULT 1,
+	ADD COLUMN IF NOT EXISTS progress integer DEFAULT 0,
+	ADD COLUMN IF NOT EXISTS last_status_update timestamptz;
+
+-- Add new columns to performance_ratings table
+ALTER TABLE performance_ratings
+	ADD COLUMN IF NOT EXISTS period_id text REFERENCES performance_periods(id),
+	ADD COLUMN IF NOT EXISTS overall_rating rating_scale,
+	ADD COLUMN IF NOT EXISTS submitted_at timestamptz;
+
+-- Create goal_progress_updates table
+CREATE TABLE IF NOT EXISTS goal_progress_updates (
+	id text PRIMARY KEY,
+	goal_id text NOT NULL REFERENCES goals(id),
+	progress integer NOT NULL,
+	comments text,
+	updated_by text NOT NULL REFERENCES users(id),
+	createdat timestamptz DEFAULT now()
+);
+
+-- Add period_id to performance_feedback table
+ALTER TABLE performance_feedback
+	ADD COLUMN IF NOT EXISTS period_id text REFERENCES performance_periods(id);
+
+-- Add indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_goals_employee_period ON goals(employee_id, period_id);
+CREATE INDEX IF NOT EXISTS idx_goals_manager_period ON goals(manager_id, period_id);
+CREATE INDEX IF NOT EXISTS idx_ratings_employee_period ON performance_ratings(employee_id, period_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_employee_period ON performance_feedback(employee_id, period_id);

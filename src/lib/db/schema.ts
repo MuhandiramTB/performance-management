@@ -15,13 +15,32 @@ import {
 } from 'drizzle-orm/pg-core'
 import { InferModel } from 'drizzle-orm'
 
-// Enums
+// Updated Enums with more comprehensive status options
 export const roleEnum = pgEnum('role', ['admin', 'manager', 'employee'])
-export const goalStatusEnum = pgEnum('goal_status', ['pending', 'approved', 'rejected', 'modified'])
-export const ratingPeriodEnum = pgEnum('rating_period', ['self_rating', 'manager_rating', 'completed'])
-export const ratingScaleEnum = pgEnum('rating_scale', ['exceeds', 'meets', 'needs_improvement', 'unsatisfactory'])
+export const goalStatusEnum = pgEnum('goal_status', [
+  'draft',
+  'pending',
+  'approved',
+  'rejected',
+  'in_progress',
+  'completed',
+  'archived'
+])
+export const ratingPeriodEnum = pgEnum('rating_period', [
+  'goal_setting',
+  'self_rating',
+  'manager_rating',
+  'completed'
+])
+export const ratingScaleEnum = pgEnum('rating_scale', [
+  'outstanding',
+  'exceeds_expectations',
+  'meets_expectations',
+  'needs_improvement',
+  'unsatisfactory'
+])
 
-// Users Table
+// Users Table - Added more fields for organization structure
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -30,6 +49,7 @@ export const users = pgTable('users', {
   image: text('image'),
   role: roleEnum('role').notNull(),
   department: varchar('department', { length: 255 }),
+  position: varchar('position', { length: 255 }),
   managerId: varchar('manager_id', { length: 255 }),
   provider: varchar('provider', { length: 50 }),
   providerAccountId: varchar('provider_account_id', { length: 255 }),
@@ -50,39 +70,70 @@ export const verificationTokens = pgTable(
   })
 )
 
-// Goals Table
+// Performance Periods Table - New table for managing review cycles
+export const performancePeriods = pgTable('performance_periods', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  startDate: timestamp('start_date', { withTimezone: true }).notNull(),
+  endDate: timestamp('end_date', { withTimezone: true }).notNull(),
+  goalSettingDeadline: timestamp('goal_setting_deadline', { withTimezone: true }).notNull(),
+  selfRatingDeadline: timestamp('self_rating_deadline', { withTimezone: true }).notNull(),
+  managerRatingDeadline: timestamp('manager_rating_deadline', { withTimezone: true }).notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('createdat', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updatedat', { withTimezone: true }).defaultNow(),
+})
+
+// Goals Table - Updated with more fields for tracking
 export const goals = pgTable('goals', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
   employeeId: text('employee_id').notNull().references(() => users.id),
   managerId: text('manager_id').notNull().references(() => users.id),
-  status: goalStatusEnum('status').default('pending'),
+  periodId: text('period_id').notNull().references(() => performancePeriods.id),
+  status: goalStatusEnum('status').default('draft'),
   priority: integer('priority').default(0),
+  weight: integer('weight').default(1),
+  progress: integer('progress').default(0),
   deadline: timestamp('deadline', { withTimezone: true }),
   managerComments: text('manager_comments'),
+  lastStatusUpdate: timestamp('last_status_update', { withTimezone: true }),
   createdAt: timestamp('createdat', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updatedat', { withTimezone: true }).defaultNow(),
 })
 
-// Performance Ratings Table
+// Performance Ratings Table - Updated with period reference
 export const performanceRatings = pgTable('performance_ratings', {
   id: text('id').primaryKey(),
-  goalId: text('goal_id').notNull().references(() => goals.id),
+  periodId: text('period_id').notNull().references(() => performancePeriods.id),
   employeeId: text('employee_id').notNull().references(() => users.id),
   managerId: text('manager_id').notNull().references(() => users.id),
   selfRating: ratingScaleEnum('self_rating'),
   managerRating: ratingScaleEnum('manager_rating'),
   selfComments: text('self_comments'),
   managerComments: text('manager_comments'),
+  overallRating: ratingScaleEnum('overall_rating'),
   ratingPeriod: ratingPeriodEnum('rating_period').default('self_rating'),
+  submittedAt: timestamp('submitted_at', { withTimezone: true }),
   createdAt: timestamp('createdat', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updatedat', { withTimezone: true }).defaultNow(),
 })
 
-// Performance Feedback Table
+// Goal Progress Updates Table - New table for tracking goal progress
+export const goalProgressUpdates = pgTable('goal_progress_updates', {
+  id: text('id').primaryKey(),
+  goalId: text('goal_id').notNull().references(() => goals.id),
+  progress: integer('progress').notNull(),
+  comments: text('comments'),
+  updatedBy: text('updated_by').notNull().references(() => users.id),
+  createdAt: timestamp('createdat', { withTimezone: true }).defaultNow(),
+})
+
+// Performance Feedback Table - Updated with period reference
 export const performanceFeedback = pgTable('performance_feedback', {
   id: text('id').primaryKey(),
+  periodId: text('period_id').notNull().references(() => performancePeriods.id),
   employeeId: text('employee_id').notNull().references(() => users.id),
   managerId: text('manager_id').notNull().references(() => users.id),
   feedback: text('feedback').notNull(),
@@ -169,8 +220,10 @@ export const sessions = pgTable('sessions', {
 
 export type User = InferModel<typeof users>
 export type VerificationToken = InferModel<typeof verificationTokens>
+export type PerformancePeriod = InferModel<typeof performancePeriods>
 export type Goal = InferModel<typeof goals>
 export type PerformanceRating = InferModel<typeof performanceRatings>
+export type GoalProgressUpdate = InferModel<typeof goalProgressUpdates>
 export type PerformanceFeedback = InferModel<typeof performanceFeedback>
 export type PerformanceReport = InferModel<typeof performanceReports>
 export type Notification = InferModel<typeof notifications>
