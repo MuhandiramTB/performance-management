@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { EmployeeOverview } from '@/components/dashboard/employee/sections/EmployeeOverview'
-import { GoalSetting } from '@/components/dashboard/employee/sections/GoalSetting'
+import { GoalSetting } from '@/components/dashboard/employee/sections/goal-setting/GoalSetting'
 import { SelfRating } from '@/components/dashboard/employee/sections/SelfRating'
 import { Feedback } from '@/components/dashboard/employee/sections/Feedback'
 import Reports from '@/components/dashboard/employee/sections/Reports'
