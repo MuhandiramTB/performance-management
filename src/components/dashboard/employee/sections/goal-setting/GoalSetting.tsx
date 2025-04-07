@@ -131,7 +131,10 @@ export function GoalSetting() {
         category: formData.category,
         tags: formData.tags,
         progress: formData.progress || 0,
-        status: GoalStatus.PENDING
+        status: GoalStatus.PENDING,
+        managerId: user?.managerId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
       
       const response = await fetch('/api/goals/employee', {
@@ -164,8 +167,27 @@ export function GoalSetting() {
       const createdGoal = responseData || {
         ...newGoal,
         goalId: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      }
+
+      // Send notification to manager
+      try {
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            type: 'GOAL_SUBMITTED',
+            recipientId: user?.managerId,
+            senderId: user?.id,
+            goalId: createdGoal.goalId,
+            message: `New goal submitted by ${user?.name}: ${createdGoal.title}`,
+          }),
+        })
+      } catch (error) {
+        console.error('Failed to send notification:', error)
+        // Don't fail the goal submission if notification fails
       }
 
       setGoals(prevGoals => [...prevGoals, createdGoal])

@@ -8,6 +8,7 @@ export enum GoalStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
+  IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed'
 }
 
@@ -37,6 +38,7 @@ export interface Goal {
   createdAt: string;
   updatedAt: string;
   userId: string;
+  employeeId: string;
   progress: number;
   feedback?: string;
   templateId?: string;
